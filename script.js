@@ -176,8 +176,9 @@ cnvs.onclick = function(){
     cnvs.requestPointerLock();
     if (!in_game){
         in_game = true;
-        websocket.send(JSON.stringify({name: name, type: 'set_name', data: name_inpt.value}));
         name = name_inpt.value;
+        store_name();
+        websocket.send(JSON.stringify({type: 'set_name', data: name}));
         name_div.style.display = 'none';
         log.style.display = 'block';
     }
@@ -374,7 +375,6 @@ function send_position(){
 function give_name(){
     //  BAD CODE!  - could have overlap with other name
     name_inpt.value = names[Math.floor(Math.random()*names.length)];
-    store_name();
 }
 
 function setup_name(){
@@ -386,7 +386,5 @@ function setup_name(){
 
 function store_name(){
     console.log('Storing name')
-    localStorage.setItem('name_inpt', name_inpt.value)
+    localStorage.setItem('name_inpt', name)
 }
-
-name_inpt.addEventListener('change', store_name);
