@@ -26,7 +26,9 @@
     }
   </style>
   <script src='https://git.io/zengine.js'></script>
-  <script src='https://git.io/perlin.js'></script>
+  <!-- banksean's mersenne twister PRNG, allows seeding:
+                 https://gist.github.com/banksean/300494 -->
+  <script src='banksean_mersenne.js'></script>
 </head>
 <body>
   <div id='info'>
@@ -39,6 +41,7 @@ server log:
 </pre>
   </div>
   <canvas id='cnvs'></canvas>
+  <script src='world_generation.js'></script>
   <script src='objects.js'></script>
   <script src='script.js'></script>
 </body>

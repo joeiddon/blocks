@@ -25,9 +25,9 @@ let objects = {
         let h  = player_height;
         return [{verts: [{x:-sz/2, y:-sz/2, z:0}, {x:-sz/2, y:sz/2, z:0}, {x:-sz/2, y:sz/2, z:h}, {x:-sz/2, y:-sz/2, z:h}], col: col, vect: {x:-1, y: 0, z: 0}},
                 {verts: [{x:-sz/2, y:-sz/2, z:0}, {x:sz/2, y:-sz/2, z:0}, {x:sz/2, y:-sz/2, z:h}, {x:-sz/2, y:-sz/2, z:h}], col: col, vect: {x: 0, y:-1, z: 0}},
-                {verts: [{x:-sz/2, y:-sz/2, z:0}, {x:sz/2, y:-sz/2, z:0}, {x:sz/2, y:sz/2, z:0}, {x:-sz/2, y:sz/2, z:0}], col: col, vect: {x: 0, y: 0, z:-2}},
-                {verts: [{x:sz/2, y:-sz/2, z:0}, {x:sz/2, y:sz/2, z:0}, {x:sz/2, y:sz/2, z:h}, {x:sz/2, y:-sz/2, z:h}], col: col, vect: {x: 1, y: 0, z: 0}},
-                {verts: [{x:-sz/2, y:sz/2, z:0}, {x:sz/2, y:sz/2, z:0}, {x:sz/2, y:sz/2, z:h}, {x:-sz/2, y:sz/2, z:h}], col: col, vect: {x: 0, y: 1, z: 0}},
-                {verts: [{x:-sz/2, y:-sz/2, z:h}, {x:sz/2, y:-sz/2, z:h}, {x:sz/2, y:sz/2, z:h}, {x:-sz/2, y:sz/2, z:h}], col: col, vect: {x: 0, y: 0, z: 2}}];
+                {verts: [{x:-sz/2, y:-sz/2, z:0}, {x:sz/2, y:-sz/2, z:0}, {x:sz/2, y:sz/2, z:0},  {x:-sz/2, y:sz/2,  z:0}], col: col, vect: {x: 0, y: 0, z:-2}},
+                {verts: [{x:sz/2,  y:-sz/2, z:0}, {x:sz/2, y:sz/2,  z:0}, {x:sz/2, y:sz/2, z:h},  {x:sz/2,  y:-sz/2, z:h}], col: col, vect: {x: 1, y: 0, z: 0}},
+                {verts: [{x:-sz/2, y:sz/2,  z:0}, {x:sz/2, y:sz/2,  z:0}, {x:sz/2, y:sz/2, z:h},  {x:-sz/2, y:sz/2,  z:h}], col: col, vect: {x: 0, y: 1, z: 0}},
+                {verts: [{x:-sz/2, y:-sz/2, z:h}, {x:sz/2, y:-sz/2, z:h}, {x:sz/2, y:sz/2, z:h},  {x:-sz/2, y:sz/2,  z:h}], col: col, vect: {x: 0, y: 0, z: 2}}];
     }
 }

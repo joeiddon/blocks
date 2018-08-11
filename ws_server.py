@@ -1,15 +1,15 @@
 #! /usr/bin/python3.6
-import asyncio,websockets,json
+import asyncio,websockets,json,random
 
 PORT = 8000
 USERS = set()  #set of WebSocketServerProtocol instances
 POSITIONS = {} #will store the positions in the format {user_name: {x: ,y: ,z: ,yaw: }, ...}
-WORLD = []     #blocks array: [{x: ,y: ,z: ,obj: }]
+SEED = random.randint(0, 1000)
 
 async def handle_ws(websocket, path):
     ip, port = websocket.remote_address
-    print(ip)
     USERS.add(websocket)
+    await websocket.send(json.dumps({'type':'seed', 'data':SEED}))
     try:
         async for message in websocket:
             message = json.loads(message)
@@ -29,16 +29,16 @@ async def handle_ws(websocket, path):
         POSITIONS.pop(websocket.name)
         USERS.remove(websocket)
 
-async def broadcast_positions():
+async def broadcast():
     while True:
         if USERS:
             await asyncio.wait([user.send(json.dumps(
                 {'type':'positions', 'data': POSITIONS}
             )) for user in USERS])
-        await asyncio.sleep(0.1)
+        await asyncio.sleep(0.05)
 
 loop = asyncio.get_event_loop()
-task = loop.create_task(broadcast_positions())
+task = loop.create_task(broadcast())
 loop.run_until_complete(websockets.serve(handle_ws,port=PORT))
 loop.run_until_complete(task)
 loop.run_forever()

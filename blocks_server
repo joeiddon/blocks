@@ -18,10 +18,14 @@ case $1 in
         sudo systemctl stop $WS_SERVER
         sudo systemctl stop $HTTP_SERVER
         ;;
+    restart)
+        sudo blocks_server stop
+        sudo blocks_server start
+        ;;
     status)
         sudo systemctl status $WS_SERVER
         sudo systemctl status $HTTP_SERVER
         ;;
     *)
-        echo "Usage: $0 {start|stop|status}"
+        echo "Usage: $0 {start|stop|restart|status}"
 esac

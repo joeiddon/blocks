@@ -8,14 +8,9 @@ let cnvs  = document.getElementById('cnvs');
 let ctx = cnvs.getContext('2d');
 let name_div = document.getElementById('name_div');
 let name_inpt = document.getElementById('name_inpt');
-let info_div = document.getElementById('info_div');
 let log = document.getElementById('log');
 
 /*******general*******/
-//have they clicked through the start screen? (i.e. verified name)
-let in_game = false;
-//is pointer lock active?
-let pointer_locked = false;
 //sensitivity of mouse movement
 let sens = 2;
 //radius HUD of circle
@@ -65,6 +60,10 @@ let time_diff_s;
 let time_last_ms;
 
 /********world*************/
+//size of chunks
+let chunk_size = 16;
+//world seed
+let seed;
 //size of world (for initial perlin)
 let world_size = 16;
 //multiplier for perlin noise
@@ -165,35 +164,40 @@ function handle_keys(){
     }
 }
 
+/************canvas*********/
 
-/*************mouse**********/
+cnvs.addEventListener('click', initial_click);
 
-//experimental
-document.addEventListener('mousewheel',e=>(cam.fov+=e.deltaY<0?-10:10));
-
-cnvs.onclick = function(){
-    if (!pointer_locked)
-    cnvs.requestPointerLock();
-    if (!in_game){
-        in_game = true;
+function initial_click(){
+    //check if ready to start
+    if (seed /* add more checks e.g. got blocks data */){
         name = name_inpt.value;
         store_name();
         websocket.send(JSON.stringify({type: 'set_name', data: name}));
         name_div.style.display = 'none';
         log.style.display = 'block';
+        cnvs.requestPointerLock();
+        cnvs.addEventListener('click', lock_pointer);
+        cnvs.removeEventListener('click', initial_click);
+    } else {
+        console.log('sorry, not ready to go');
     }
+}
+
+function lock_pointer(){
+    cnvs.requestPointerLock();
 }
 
 document.addEventListener('pointerlockchange', function(){
     if (document.pointerLockElement == cnvs){
-        pointer_locked = true;
+        cnvs.removeEventListener('click', lock_pointer);
         update_id = requestAnimationFrame(update);
         document.addEventListener('mousemove', mm);
         document.addEventListener('click', mc);
         document.addEventListener('keypress', kd);
         document.addEventListener('keyup', ku);
     } else {
-        pointer_locked = false;
+        cnvs.addEventListener('click', lock_pointer);
         cancelAnimationFrame(update_id);
         document.removeEventListener('mousemove', mm);
         document.removeEventListener('mouseclick', mc);
@@ -201,6 +205,13 @@ document.addEventListener('pointerlockchange', function(){
         document.removeEventListener('keyup', ku);
     }
 })
+
+/*************mouse**********/
+
+//all mouse events are controlled by the pointerlockchange event handler
+
+//experimental
+document.addEventListener('mousewheel',e=>(cam.fov+=e.deltaY<0?-10:10));
 
 function mc(e){
     // 0 --> left ; 2 --> right
@@ -284,6 +295,12 @@ websocket.onmessage = function(e){
         case 'positions':
             positions = message['data'];
             break;
+        case 'seed':
+            seed = parseInt(message['data']);
+            break;
+        //case 'blocks':
+         //   blocks = message['data'];
+          //  break;
         case 'log':
             log.innerText += '\n' + message['data'];
             break;
