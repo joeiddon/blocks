@@ -31,7 +31,7 @@ let light = {x: 0.5, y: 0.5, z: -0.7, min_saturation: 0.3, min_lightness: 0.3};
 //random_names
 let names = ['bob', 'bill', 'jim', 'fish', 'cat'];
 //object to store positions (cameras) of other players
-let players = {};
+let positions = {};
 
 /******websocket*********/
 //server address
@@ -281,7 +281,7 @@ websocket.onmessage = function(e){
     let message = JSON.parse(e.data);
     switch (message['type']){
         case 'positions':
-            players = message['data'];
+            positions = message['data'];
             break;
         case 'log':
             log.innerText += '\n' + message['data'];
@@ -353,6 +353,18 @@ function gen_world(){
                                                         blocks[i].y,
                                                         blocks[i].z)),
                    vect: f.vect,
+                   col:  f.col})
+        ));
+    }
+    for (let player in positions){
+        if (player == name) continue;
+        console.log(player);
+        world = world.concat(objects.person().map(
+            f => ({verts: f.verts.map(zengine.z_axis_rotate(positions[player].yaw))
+                                 .map(zengine.translate(positions[player].x,
+                                                        positions[player].y,
+                                                        positions[player].z-player_height)),
+                   vect: zengine.z_axis_rotate(positions[player].yaw)(f.vect),
                    col:  f.col})
         ));
     }

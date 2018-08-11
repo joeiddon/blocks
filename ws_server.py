@@ -26,7 +26,7 @@ async def handle_ws(websocket, path):
             else:
                 print('message type', message['type'], 'not recognised')
     finally:
-        print('rm')
+        POSITIONS.pop(websocket.name)
         USERS.remove(websocket)
 
 async def broadcast_positions():
