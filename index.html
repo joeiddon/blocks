@@ -1,0 +1,45 @@
+<html>
+<head>
+  <style>
+    html, body {
+        padding: 0;
+        margin: 0;
+    }
+    #cnvs {
+        background-color: #203;
+    }
+    #info {
+        position: fixed;
+        bottom: 0;
+        right: 0;
+        padding: 4px;
+        color: #fff;
+    }
+    #name_inpt {
+        width: 100px;
+    }
+    #log {
+        height: 200px;
+        overflow:auto;
+        margin: 0;
+        display: none;
+    }
+  </style>
+  <script src='https://git.io/zengine.js'></script>
+  <script src='https://git.io/perlin.js'></script>
+</head>
+<body>
+  <div id='info'>
+    <div id='name_div'>
+      <label for='name_inpt'>your display name<label>
+      <input type='text' id='name_inpt'></input>
+    </div>
+<pre id='log'>
+server log:
+</pre>
+  </div>
+  <canvas id='cnvs'></canvas>
+  <script src='objects.js'></script>
+  <script src='script.js'></script>
+</body>
+<html>

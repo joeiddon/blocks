@@ -1,0 +1,27 @@
+#! /bin/bash
+
+if [ $EUID -ne 0 ]
+    then echo "run as root"
+    exit
+fi
+
+DAEMON_DIR="/etc/systemd/system/"
+WS_SERVER="blocks_ws_server"
+HTTP_SERVER="blocks_http_server"
+
+case $1 in
+    start)
+        sudo systemctl start $WS_SERVER
+        sudo systemctl start $HTTP_SERVER
+        ;;
+    stop)
+        sudo systemctl stop $WS_SERVER
+        sudo systemctl stop $HTTP_SERVER
+        ;;
+    status)
+        sudo systemctl status $WS_SERVER
+        sudo systemctl status $HTTP_SERVER
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|status}"
+esac
