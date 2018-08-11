@@ -176,8 +176,9 @@ cnvs.onclick = function(){
     cnvs.requestPointerLock();
     if (!in_game){
         in_game = true;
-        websocket.send(JSON.stringify({name: name, type: 'set_name', data: name_inpt.value}));
         name = name_inpt.value;
+        store_name();
+        websocket.send(JSON.stringify({type: 'set_name', data: name}));
         name_div.style.display = 'none';
         log.style.display = 'block';
     }
@@ -390,8 +391,12 @@ function give_name(){
 
 function setup_name(){
     let stored_name = localStorage.getItem('name_inpt');
+    console.log('Have name stored: ' + stored_name)
     if(stored_name) name_inpt.value = stored_name;
     else give_name();
 }
 
-name_inpt.addEventListener('change', (e) => localStorage.setItem('name_inpt', name_inpt.value));
+function store_name(){
+    console.log('Storing name')
+    localStorage.setItem('name_inpt', name)
+}
