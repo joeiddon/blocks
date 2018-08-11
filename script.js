@@ -374,12 +374,19 @@ function send_position(){
 function give_name(){
     //  BAD CODE!  - could have overlap with other name
     name_inpt.value = names[Math.floor(Math.random()*names.length)];
+    store_name();
 }
 
 function setup_name(){
     let stored_name = localStorage.getItem('name_inpt');
+    console.log('Have name stored: ' + stored_name)
     if(stored_name) name_inpt.value = stored_name;
     else give_name();
 }
 
-name_inpt.addEventListener('change', (e) => localStorage.setItem('name_inpt', name_inpt.value));
+function store_name(){
+    console.log('Storing name')
+    localStorage.setItem('name_inpt', name_inpt.value)
+}
+
+name_inpt.addEventListener('change', store_name);
