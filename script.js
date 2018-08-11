@@ -84,8 +84,8 @@ init_world();
 startup_screen();
 //init. websocket connection
 let websocket = new WebSocket(ws_server);
-//put random name in name_inpt text box
-give_name();
+//put stored name in the input textbox or default to random
+setup_name();
 
 /*************************************
           MAIN EVENT LOOP
@@ -387,3 +387,11 @@ function give_name(){
     //  BAD CODE!  - could have overlap with other name
     name_inpt.value = names[Math.floor(Math.random()*names.length)];
 }
+
+function setup_name(){
+    let stored_name = localStorage.getItem('name_inpt');
+    if(stored_name) name_inpt.value = stored_name;
+    else give_name();
+}
+
+name_inpt.addEventListener('change', (e) => localStorage.setItem('name_inpt', name_inpt.value));
