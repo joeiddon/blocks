@@ -26,10 +26,10 @@ let objects = {
         let col = {h: 131, s: 84, l: 57};
         let sz = 1;
         let h  = player_height;
-        let body =     get_cubiod(     0, 0,     3*h/4,   sz, sz/2,  h/2, col);
-        let head =     get_cubiod(     0, 0,  h + sz/4, sz/2, sz/2, sz/2, col);
-        let left_leg = get_cubiod(  sz/4, 0,       h/4, sz/3, sz/2,  h/2, col);
-        let right_leg = get_cubiod(-sz/4, 0,       h/4, sz/3, sz/2,  h/2, col);
+        let body =      get_cubiod(      0, 0, 3 * h /  5,     sz, sz / 2,  2 * h / 5, col);
+        let head =      get_cubiod(      0, 0, 9 * h / 10, sz / 2, sz / 3,      h / 5, col);
+        let left_leg =  get_cubiod( sz / 4, 0,     h /  5, sz / 3, sz / 3,  2 * h / 5, col);
+        let right_leg = get_cubiod(-sz / 4, 0,     h /  5, sz / 3, sz / 3,  2 * h / 5, col);    
         return [].concat(body, head, left_leg, right_leg);
     }
 }
