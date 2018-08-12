@@ -6,7 +6,7 @@ BIN_DIR='/usr/local/bin'
 
 echo "uninstalling server"
 echo "removing daemon files in $DAEMON_DIR"
-for f in *.service; do
+for f in $(ls daemons); do
     sudo rm $DAEMON_DIR/$f
 done
 

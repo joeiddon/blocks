@@ -4,11 +4,14 @@
             VARIABLES
 **************************************/
 /****DOM elements (+ctx)*******/
-let cnvs  = document.getElementById('cnvs');
+let cnvs        = document.getElementById('cnvs');
+let name_div    = document.getElementById('name_div');
+let name_inpt   = document.getElementById('name_inpt');
+let control_div = document.getElementById('control_div');
+let log         = document.getElementById('log');
+let cmd_inpt    = document.getElementById('cmd_inpt');
+
 let ctx = cnvs.getContext('2d');
-let name_div = document.getElementById('name_div');
-let name_inpt = document.getElementById('name_inpt');
-let log = document.getElementById('log');
 
 /*******misc*******/
 //the current grass chunk blocks are stored
@@ -175,7 +178,7 @@ function initial_click(){
         store_name();
         websocket.send(JSON.stringify({type: 'set_name', data: name}));
         name_div.style.display = 'none';
-        log.style.display = 'block';
+        control_div.style.display = 'block';
         cnvs.requestPointerLock();
         cnvs.addEventListener('click', lock_pointer);
         cnvs.removeEventListener('click', initial_click);
@@ -256,7 +259,6 @@ function mc(e){
                 }
             }
             if (!inside) continue;
-            console.log('hit');
             if (e.button == 2) {  //right click (remove)
                 if (blocks[i].obj != 'grass')
                 websocket.send(JSON.stringify({type:'block_remove', 'data': blocks[i]}))
@@ -302,11 +304,20 @@ websocket.onmessage = function(e){
             break;
         case 'log':
             log.innerText += '\n' + message['data'];
+            log.scrollTop = log.scrollHeight;
             break;
         default:
             console.log('unknown message type');
     }
 }
+
+/*********** command input ***********/
+
+cmd_inpt.addEventListener('keyup', function(e){
+    if (e.keyCode != 13) return;
+    websocket.send(JSON.stringify({type:'cmd', data:cmd_inpt.value}));
+    cmd_inpt.value = '';
+});
 
 /********************************
            OTHER FUNCS
@@ -338,9 +349,9 @@ function handle_jump(){
     //z of ground (block below's z plus one)
     let gz = -Infinity;
     for (let i = 0; i < blocks.length; i++){
-        if (blocks[i].z > gz && blocks[i].x == Math.floor(cam.x) &&
-                                blocks[i].y == Math.floor(cam.y) &&
-                                blocks[i].z <= Math.ceil(cam.z-player_height))
+        if (blocks[i].z + 1 > gz && blocks[i].x == Math.floor(cam.x) &&
+                                    blocks[i].y == Math.floor(cam.y) &&
+                                    blocks[i].z <= Math.ceil(cam.z-player_height))
         gz = blocks[i].z + 1;
     }
     //update speed
@@ -369,13 +380,12 @@ function gen_world(){
     }
     for (let player in positions){
         if (player == name) continue;
-        console.log(player);
         world = world.concat(objects.person().map(
-            f => ({verts: f.verts.map(zengine.z_axis_rotate(positions[player].yaw))
+            f => ({verts: f.verts.map(zengine.z_axis_rotate(zengine.to_rad(-positions[player].yaw)))
                                  .map(zengine.translate(positions[player].x,
                                                         positions[player].y,
                                                         positions[player].z-player_height)),
-                   vect: zengine.z_axis_rotate(positions[player].yaw)(f.vect),
+                   vect: zengine.z_axis_rotate(zengine.to_rad(-positions[player].yaw))(f.vect),
                    col:  f.col})
         ));
     }
@@ -401,12 +411,10 @@ function give_name(){
 
 function setup_name(){
     let stored_name = localStorage.getItem('name_inpt');
-    console.log('Have name stored: ' + stored_name)
     if(stored_name) name_inpt.value = stored_name;
     else give_name();
 }
 
 function store_name(){
-    console.log('Storing name')
     localStorage.setItem('name_inpt', name)
 }

@@ -18,11 +18,13 @@
     #name_inpt {
         width: 100px;
     }
+    #control_div {
+        display: none;
+    }
     #log {
         height: 200px;
         overflow:auto;
         margin: 0;
-        display: none;
     }
   </style>
   <script src='https://git.io/zengine.js'></script>
@@ -36,9 +38,10 @@
       <label for='name_inpt'>your display name<label>
       <input type='text' id='name_inpt'></input>
     </div>
-<pre id='log'>
-server log:
-</pre>
+    <div id='control_div'>
+        <pre id='log'></pre>
+        <input type='text' id='cmd_inpt'></input>
+    </div>
   </div>
   <canvas id='cnvs'></canvas>
   <script src='world_generation.js'></script>
