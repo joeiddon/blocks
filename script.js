@@ -10,7 +10,15 @@ let name_div = document.getElementById('name_div');
 let name_inpt = document.getElementById('name_inpt');
 let log = document.getElementById('log');
 
-/*******general*******/
+/*******misc*******/
+//the current grass chunk blocks are stored
+let chunk_blocks;
+//array to store player-placed blocks
+let user_blocks = [];
+//global to store chunk_blocks and user_blocks
+let blocks;
+//object to store positions (cameras) of other players
+let positions = {};
 //sensitivity of mouse movement
 let sens = 2;
 //radius HUD of circle
@@ -19,14 +27,10 @@ let hud_radius = 4;
 let wireframe = false;
 //set of currently pressed keys
 let pressed_keys = new Set();
-//blocks array
-let blocks = [];
 //light
 let light = {x: 0.5, y: 0.5, z: -0.7, min_saturation: 0.3, min_lightness: 0.3};
 //random_names
 let names = ['bob', 'bill', 'jim', 'fish', 'cat'];
-//object to store positions (cameras) of other players
-let positions = {};
 
 /******websocket*********/
 //server address
@@ -43,17 +47,17 @@ let name;
 //position of camera
 let cam = {x: 0, y: 0, z: 1+player_height, yaw: 0, pitch: 0, roll: 0, fov: 90};
 //how far can we see?
-let horizon = 16;
+let horizon = 10;
 //speed, units per second
 let spd = 4;
 
 /*********jumping******/
 let jump_spd = 0;         //units per second
 let jump_init_spd = 16;   //units per second
-let gravity = 16;         //units per second ^ 2
+let gravity = 64;         //units per second ^ 2
 
 /*****anim. frame globals****/
-//id
+//id returned from requestAnimationFrame
 let update_id;
 //timing globals
 let time_diff_s;
@@ -64,12 +68,8 @@ let time_last_ms;
 let chunk_size = 16;
 //world seed
 let seed;
-//size of world (for initial perlin)
-let world_size = 16;
 //multiplier for perlin noise
-let hill_height = 6;
-//size of perlin grid square
-let hill_size = world_size;
+let hill_height = 4;
 
 /*************************************
                STARTUP
@@ -77,8 +77,6 @@ let hill_size = world_size;
 
 //fit the canvas to the screen
 fts();
-//setup the world
-init_world();
 //display startup message
 startup_screen();
 //init. websocket connection
@@ -94,15 +92,17 @@ function update(time_now_ms){
     time_diff_s  = time_last_ms ? (time_now_ms - time_last_ms) / 1000 : 0;
     time_last_ms = time_now_ms;
 
+    gen_chunk_blocks();
+    blocks = chunk_blocks.concat(user_blocks);
+    handle_keys();
+    handle_jump();
+    zengine.render(gen_world(), cam, cnvs, wireframe, false, light);
+    render_hud();
+
     if (pos_last_ms + pos_int_ms < time_now_ms){
         pos_last_ms = time_now_ms;
         send_position();
     }
-
-    handle_keys();
-    handle_jump();
-    zengine.render(gen_world(), cam, cnvs, wireframe, horizon, light);
-    render_hud();
 
     update_id = requestAnimationFrame(update);
 }
@@ -257,18 +257,17 @@ function mc(e){
             }
             if (!inside) continue;
             console.log('hit');
-            if (e.button == 2) {
-                console.log('removing', i);
+            if (e.button == 2) {  //right click (remove)
                 if (blocks[i].obj != 'grass')
-                blocks.splice(i,1);
-            } else {
+                websocket.send(JSON.stringify({type:'block_remove', 'data': blocks[i]}))
+            } else {              //left click (place)
                 let nb = {x: blocks[i].x + blk[j].vect.x,
                           y: blocks[i].y + blk[j].vect.y,
                           z: blocks[i].z + blk[j].vect.z,
                           obj: 'cube'};
                 //check if trying to place block where am standing, still return if was
-                if (!(nb.x==Math.floor(cam.x)&&nb.y==Math.floor(cam.y)&&(nb.z==Math.floor(cam.z)||nb.z==Math.floor(cam.z)-1))){
-                    blocks.push(nb);
+                if (nb.x != Math.floor(cam.x) || nb.y != Math.floor(cam.y) || (nb.z != Math.floor(cam.z) && nb.z != Math.floor(cam.z)-1)){
+                    websocket.send(JSON.stringify({type:'block_place', 'data': nb}))
                 }
             }
             return;
@@ -298,9 +297,9 @@ websocket.onmessage = function(e){
         case 'seed':
             seed = parseInt(message['data']);
             break;
-        //case 'blocks':
-         //   blocks = message['data'];
-          //  break;
+        case 'user_blocks':
+            user_blocks = message['data'];
+            break;
         case 'log':
             log.innerText += '\n' + message['data'];
             break;
@@ -318,12 +317,13 @@ function step(angle){
     let sd = spd * time_diff_s;
     let nx = cam.x + Math.sin(zengine.to_rad(cam.yaw + angle)) * sd;
     let ny = cam.y + Math.cos(zengine.to_rad(cam.yaw + angle)) * sd;
-    //blocks surrounding me (so the 2)
-    let bs = blocks.filter(b => b.x==Math.floor(nx)&&b.y==Math.floor(ny)&&(b.z==Math.floor(cam.z)||b.z==Math.floor(cam.z-1)));
-    if (0 < nx && nx < world_size && 0 < ny && ny < world_size && !bs.length){
-        cam.x = nx;
-        cam.y = ny;
+    //bs is an array of blocks I will be within (i.e. must have no length to take step)
+    for (let i = 0; i < blocks.length; i++){
+        if (blocks[i].x == Math.floor(nx) &&
+            blocks[i].y == Math.floor(ny) &&
+           (blocks[i].z == Math.floor(cam.z) || blocks[i].z == Math.floor(cam.z-1))) return;
     }
+    cam.x = nx; cam.y = ny;
 }
 
 function render_hud(){
@@ -336,10 +336,13 @@ function render_hud(){
 
 function handle_jump(){
     //z of ground (block below's z plus one)
-    let gz = blocks.filter(b=>(b.x == Math.floor(cam.x) &&
-                               b.y == Math.floor(cam.y) &&
-                               b.z <= Math.ceil(cam.z-player_height)))
-                   .reduce((a,b)=>a.z>b.z?a:b).z+1;
+    let gz = -Infinity;
+    for (let i = 0; i < blocks.length; i++){
+        if (blocks[i].z > gz && blocks[i].x == Math.floor(cam.x) &&
+                                blocks[i].y == Math.floor(cam.y) &&
+                                blocks[i].z <= Math.ceil(cam.z-player_height))
+        gz = blocks[i].z + 1;
+    }
     //update speed
     jump_spd -= gravity * time_diff_s;
     //next z pos
@@ -352,20 +355,10 @@ function handle_jump(){
     }
 }
 
-function init_world(){
-    for (let x = 0; x < world_size; x++){
-        for (let y = 0; y < world_size; y++){
-            blocks.push({x: x,
-                         y: y,
-                         z: parseInt(perlin.get(x/hill_size, y/hill_size)*hill_height),
-                         obj: 'grass'});
-        }
-    }
-}
-
 function gen_world(){
     let world = [];
     for (let i = 0; i < blocks.length; i++){
+        if (zengine.distance(blocks[i], cam) > horizon) continue;
         world = world.concat(objects[blocks[i].obj]().map(
             f => ({verts: f.verts.map(zengine.translate(blocks[i].x,
                                                         blocks[i].y,
