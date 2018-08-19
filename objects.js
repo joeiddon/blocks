@@ -20,8 +20,8 @@ let objects = {
                 {verts: [{x:0, y:0, z:1}, {x:1, y:0, z:1}, {x:1, y:1, z:1}, {x:0, y:1, z:1}], col: {h: 90, s: 80, l: 40}, vect: {x: 0, y: 0, z: 1}}];
     },
     person: function(){
-        let col = {h: 17, s: 86, l: 64};
-        let fc =  {h:  0, s: 0, l: 100};
+        let col = {h: 182, s: 86, l: 64};
+        let fc =  {h: 299, s: 66, l: 68};
         let sz = 1; //width of body; proportions based of this
         let h  = player_height;
         let head =      get_cubiod(    -sz/4, -sz/6, h * 4/5, sz/2, sz/3, h * 1/5, [col,fc,col,col,col,col]);

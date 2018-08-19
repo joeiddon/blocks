@@ -27,7 +27,6 @@ async def send(websocket, dic):
         await handle_leave(user)
 
 async def handle_leave(websocket):
-    assert websocket.closed
     if websocket in USERS:
         USERS.remove(websocket)
     if websocket.name in POSITIONS:

@@ -100,6 +100,7 @@ function update(time_now_ms){
     handle_keys();
     handle_jump();
     zengine.render(gen_world(), cam, cnvs, wireframe, false, light);
+    render_names();
     render_hud();
 
     if (pos_last_ms + pos_int_ms < time_now_ms){
@@ -130,8 +131,8 @@ cnvs.addEventListener('click', initial_click);
 
 function initial_click(){
     //check we have been sent the positions (names) and we havent't
-    //chosen someone else's name
-    if (!positions || name_inpt.value in positions){
+    //chosen someone else's name or no name
+    if (!positions || name_inpt.value in positions || !name_inpt.value.length){
         name_inpt.value = '';
         ctx.fillStyle = 'rgba(255,0,0,0.4)';
         ctx.fillRect(0, 0, cnvs.width, cnvs.height);
@@ -416,3 +417,24 @@ function setup_name(){
 function store_name(){
     localStorage.setItem('name_inpt', name)
 }
+
+function render_names(){
+    for (let player_name in positions){
+        if (player_name == name) continue;
+        let aligned = zengine.translate(cam.x, cam.y, cam.z)(
+                      zengine.x_axis_rotate(zengine.to_rad(cam.pitch))(
+                      zengine.y_axis_rotate(zengine.to_rad(cam.roll))(
+                      zengine.z_axis_rotate(zengine.to_rad(cam.yaw))(
+                      zengine.translate(-cam.x, -cam.y, -cam.z)(positions[player_name])))));
+        let centre_angles = {y: zengine.to_deg(Math.atan2(aligned.x - cam.x, aligned.y - cam.y)),
+                             p: zengine.to_deg(Math.atan2(aligned.z - cam.z, aligned.y - cam.y))};
+
+        let coord = {x: cnvs.width/2 + (centre_angles.y * (cnvs.width/cam.fov)),
+                     y: cnvs.height/2 - (centre_angles.p * (cnvs.width/cam.fov))};
+
+        ctx.font = '10px monospace';
+        ctx.fillStyle = '#fff';
+        ctx.fillText(name, coord.x, coord.y);
+    }
+}
+
