@@ -21,7 +21,7 @@ let user_blocks = [];
 //global to store chunk_blocks and user_blocks
 let blocks;
 //object to store positions (cameras) of other players
-let positions = {};
+let positions;
 //sensitivity of mouse movement
 let sens = 2;
 //radius HUD of circle
@@ -37,7 +37,7 @@ let names = ['bob', 'bill', 'jim', 'fish', 'cat'];
 
 /******websocket*********/
 //server address
-let ws_server = 'ws://35.207.51.171:8000/';
+let ws_server_ip = 'ws://35.207.51.171:8000/';
 //position update interval
 let pos_int_ms = 100;
 //last position update
@@ -83,8 +83,8 @@ fts();
 //display startup message
 startup_screen();
 //init. websocket connection
-let websocket = new WebSocket(ws_server);
-//put stored name in the input textbox or default to random
+let websocket = new WebSocket(ws_server_ip);
+//put stored name in the input textbox
 setup_name();
 
 /*************************************
@@ -117,15 +117,95 @@ function update(time_now_ms){
 
 /***********resize*****************/
 
-window.addEventListener('resize',fts);
+window.addEventListener('resize', fts);
 
 function fts(){
     cnvs.width  = innerWidth;
     cnvs.height = innerHeight;
 }
 
-/**********keyboard***************/
+/************canvas*********/
 
+cnvs.addEventListener('click', initial_click);
+
+function initial_click(){
+    //check we have been sent the positions (names) and we havent't
+    //chosen someone else's name
+    if (!positions || name_inpt.value in positions){
+        name_inpt.value = '';
+        ctx.fillStyle = 'rgba(255,0,0,0.4)';
+        ctx.fillRect(0, 0, cnvs.width, cnvs.height);
+        return;
+    }
+    name = name_inpt.value;
+    store_name();
+    websocket.send(JSON.stringify({type: 'join', data: name}));
+    name_div.style.display = 'none';
+    control_div.style.display = 'block';
+    cnvs.requestPointerLock();
+    cnvs.removeEventListener('click', initial_click);
+}
+
+function lock_pointer(){
+    cnvs.requestPointerLock();
+}
+
+document.addEventListener('pointerlockchange', function(){
+    if (document.pointerLockElement == cnvs){
+        cnvs.removeEventListener('click', lock_pointer);
+        update_id = requestAnimationFrame(update);
+        document.addEventListener('mousemove', mm);
+        document.addEventListener('click', mc);
+        document.addEventListener('keypress', kd);
+        document.addEventListener('keyup', ku);
+    } else {
+        ctx.fillStyle = 'rgba(255,0,0,0.4)';
+        ctx.fillRect(0, 0, cnvs.width, cnvs.height);
+        cnvs.addEventListener('click', lock_pointer);
+        cancelAnimationFrame(update_id);
+        document.removeEventListener('mousemove', mm);
+        document.removeEventListener('mouseclick', mc);
+        document.removeEventListener('keypress', kd);
+        document.removeEventListener('keyup', ku);
+    }
+})
+
+/********** websocket **********/
+
+websocket.onerror = function(e){
+    document.body.innerText = 'server error: likely server script is not running';
+}
+
+websocket.onmessage = function(e){
+    let message = JSON.parse(e.data);
+    switch (message['type']){
+        case 'positions':
+            positions = message['data'];
+            break;
+        case 'seed':
+            seed = parseInt(message['data']);
+            break;
+        case 'user_blocks':
+            user_blocks = message['data'];
+            break;
+        case 'log':
+            log.innerText += message['data'] + '\n';
+            log.scrollTop = log.scrollHeight;
+            break;
+        default:
+            console.log('unknown message type');
+    }
+}
+
+/**********input boxes**********/
+
+cmd_inpt.addEventListener('keyup', function(e){
+    if (e.keyCode != 13) return;
+    websocket.send(JSON.stringify({type:'cmd', data:cmd_inpt.value}));
+    cmd_inpt.value = '';
+});
+
+/**********keyboard***************/
 
 //handlers initiated in the pointer lock event handler
 
@@ -166,48 +246,6 @@ function handle_keys(){
         }
     }
 }
-
-/************canvas*********/
-
-cnvs.addEventListener('click', initial_click);
-
-function initial_click(){
-    //check if ready to start
-    if (seed /* add more checks e.g. got blocks data */){
-        name = name_inpt.value;
-        store_name();
-        websocket.send(JSON.stringify({type: 'set_name', data: name}));
-        name_div.style.display = 'none';
-        control_div.style.display = 'block';
-        cnvs.requestPointerLock();
-        cnvs.addEventListener('click', lock_pointer);
-        cnvs.removeEventListener('click', initial_click);
-    } else {
-        console.log('sorry, not ready to go');
-    }
-}
-
-function lock_pointer(){
-    cnvs.requestPointerLock();
-}
-
-document.addEventListener('pointerlockchange', function(){
-    if (document.pointerLockElement == cnvs){
-        cnvs.removeEventListener('click', lock_pointer);
-        update_id = requestAnimationFrame(update);
-        document.addEventListener('mousemove', mm);
-        document.addEventListener('click', mc);
-        document.addEventListener('keypress', kd);
-        document.addEventListener('keyup', ku);
-    } else {
-        cnvs.addEventListener('click', lock_pointer);
-        cancelAnimationFrame(update_id);
-        document.removeEventListener('mousemove', mm);
-        document.removeEventListener('mouseclick', mc);
-        document.removeEventListener('keypress', kd);
-        document.removeEventListener('keyup', ku);
-    }
-})
 
 /*************mouse**********/
 
@@ -284,41 +322,6 @@ function mm(e){
     cam.pitch += cam.pitch < -180 ? 360 : cam.pitch > 180 ? -360 : 0;
 }
 
-/********** websocket **********/
-
-websocket.onerror = function(e){
-    document.body.innerText = 'server error: likely server script is not running';
-}
-
-websocket.onmessage = function(e){
-    let message = JSON.parse(e.data);
-    switch (message['type']){
-        case 'positions':
-            positions = message['data'];
-            break;
-        case 'seed':
-            seed = parseInt(message['data']);
-            break;
-        case 'user_blocks':
-            user_blocks = message['data'];
-            break;
-        case 'log':
-            log.innerText += '\n' + message['data'];
-            log.scrollTop = log.scrollHeight;
-            break;
-        default:
-            console.log('unknown message type');
-    }
-}
-
-/*********** command input ***********/
-
-cmd_inpt.addEventListener('keyup', function(e){
-    if (e.keyCode != 13) return;
-    websocket.send(JSON.stringify({type:'cmd', data:cmd_inpt.value}));
-    cmd_inpt.value = '';
-});
-
 /********************************
            OTHER FUNCS
 *********************************/
@@ -367,6 +370,7 @@ function handle_jump(){
 }
 
 function gen_world(){
+    //returns 3d world faces from blocks array and positions object
     let world = [];
     for (let i = 0; i < blocks.length; i++){
         if (zengine.distance(blocks[i], cam) > horizon) continue;
@@ -404,15 +408,9 @@ function send_position(){
     websocket.send(JSON.stringify({type: 'update_position', data: {x: cam.x, y: cam.y, z: cam.z, yaw: cam.yaw}}));
 }
 
-function give_name(){
-    //  BAD CODE!  - could have overlap with other name
-    name_inpt.value = names[Math.floor(Math.random()*names.length)];
-}
-
 function setup_name(){
     let stored_name = localStorage.getItem('name_inpt');
-    if(stored_name) name_inpt.value = stored_name;
-    else give_name();
+    if (stored_name) name_inpt.value = stored_name;
 }
 
 function store_name(){
