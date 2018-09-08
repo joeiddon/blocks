@@ -3,6 +3,14 @@
 /*************************************
             VARIABLES
 **************************************/
+
+//TODO:
+/*
+ - need more robust checking for when server is down
+   use onreadystate...
+*/
+
+
 /****DOM elements (+ctx)*******/
 let cnvs        = document.getElementById('cnvs');
 let name_div    = document.getElementById('name_div');
@@ -37,7 +45,7 @@ let names = ['bob', 'bill', 'jim', 'fish', 'cat'];
 
 /******websocket*********/
 //server address
-let ws_server_ip = 'ws://35.207.51.171:8000/';
+let ws_server_ip = 'wss://joe.iddon.com:8080/';
 //position update interval
 let pos_int_ms = 100;
 //last position update
@@ -434,7 +442,7 @@ function render_names(){
 
         ctx.font = '10px monospace';
         ctx.fillStyle = '#fff';
-        ctx.fillText(name, coord.x, coord.y);
+        ctx.fillText(player_name, coord.x, coord.y);
     }
 }
 

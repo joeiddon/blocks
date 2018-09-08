@@ -1,7 +1,7 @@
 #! /usr/bin/python3.6
-import http.server, os, socketserver
+import http.server, os, socketserver, ssl
 
-PORT = 80
+PORT = 443
 DIR = '/home/joe/blocks_multiplayer/'
 
 class Handler(http.server.BaseHTTPRequestHandler):
@@ -22,4 +22,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
 os.chdir(DIR)
 socketserver.TCPServer.allow_reuse_address = 1
 with socketserver.TCPServer(('',PORT), Handler) as httpd:
+    httpd.socket = ssl.wrap_socket(httpd.socket,
+                                   certfile='/etc/letsencrypt/live/joe.iddon.com/fullchain.pem',
+                                   keyfile ='/etc/letsencrypt/live/joe.iddon.com/privkey.pem',
+                                   server_side=True)
     httpd.serve_forever()
