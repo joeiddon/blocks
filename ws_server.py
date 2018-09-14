@@ -1,7 +1,7 @@
 #! /usr/bin/python3.6
 import asyncio,websockets,json,random,ssl
 
-PORT = 8080
+PORT = 443
 USERS = set()       #set of WebSocketServerProtocol instances
 POSITIONS = {}      #will store the positions in the format {user_name: {x: ,y: ,z: ,yaw: }, ...}
 USER_BLOCKS = set() #stores the user placed blocks (orange cubes & eventually more) in format {x: ,y: ,z: ,obj: }
@@ -89,5 +89,6 @@ ssl_context.load_cert_chain(certfile='/etc/letsencrypt/live/joe.iddon.com/fullch
 loop = asyncio.get_event_loop()
 task = loop.create_task(pinger())
 loop.run_until_complete(websockets.serve(handle_ws,port=PORT,ssl=ssl_context))
+#loop.run_until_complete(websockets.serve(handle_ws,port=PORT))
 loop.run_until_complete(task)
 loop.run_forever()

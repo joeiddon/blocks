@@ -45,7 +45,7 @@ let names = ['bob', 'bill', 'jim', 'fish', 'cat'];
 
 /******websocket*********/
 //server address
-let ws_server_ip = 'wss://joe.iddon.com:8080/';
+let ws_server_ip = 'wss://joe.iddon.com:443/';
 //position update interval
 let pos_int_ms = 100;
 //last position update
