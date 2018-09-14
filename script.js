@@ -411,6 +411,7 @@ function startup_screen(){
     ctx.textBaseline = 'middle';
     ctx.textAlign = 'center';
     ctx.fillText('click anywhere to start (ESC to escape)', cnvs.width/2, cnvs.height/2);
+    ctx.fillText('DISCLAIMER: I ACCEPT NO RESPONSIBILITY FOR THE PLAYING OF THIS GAME', cnvs.width/2, cnvs.height/2+32);
 }
 
 function send_position(){
