@@ -1,5 +1,0 @@
-[Unit]
-Description=http server
-
-[Service]
-ExecStart=/home/joe/blocks_multiplayer/http_server.py

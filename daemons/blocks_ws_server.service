@@ -1,5 +1,0 @@
-[Unit]
-Description=websocket server
-
-[Service]
-ExecStart=/home/joe/blocks_multiplayer/ws_server.py

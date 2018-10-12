@@ -1,15 +1,30 @@
 #! /bin/bash
 
-PROG_NAME='blocks_server'
-DAEMON_DIR='/etc/systemd/system'
-BIN_DIR='/usr/local/bin'
+#setup stuf
+SERVER_FILE="server.py"
+SERVICE_FILE="blocks_server.service"
+DAEMON_DIR="/etc/systemd/system"
 
-echo "uninstalling server"
-echo "removing daemon files in $DAEMON_DIR"
-for f in $(ls daemons); do
-    sudo rm $DAEMON_DIR/$f
-done
+#assure we are root (as modifying system files)
+if [ $EUID -ne 0 ]
+then
+    echo "run as root"
+    exit
+fi
 
-echo "removing symbolic link to server shell script in $BIN_DIR"
-sudo rm $BIN_DIR/$PROG_NAME
-echo "uninstall complete"
+#check installed
+if [ ! -f $DAEMON_DIR/$SERVICE_FILE ]
+then
+    echo "not installed"
+    exit
+fi
+
+#print some log messages
+echo "1: uninstalling blocks server"
+echo "2: purging service unit ($SERVICE_NAME.service) in $DAEMON_DIR"
+sudo rm $SERVICE_FILE $DAEMON_DIR
+echo "3: regenerating systemd dependency trees"
+sudo systemctl daemon-reload
+
+echo "4: uninstall complete"
+echo "sorry you didn't enjoy it!"
