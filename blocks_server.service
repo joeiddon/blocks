@@ -1,0 +1,6 @@
+[Unit]
+Description=Blocks WebSocket Server
+
+[Service]
+#when install.sh copies this to /etc/systemd/system, it
+#defines the ExecStart line (which is appended below)

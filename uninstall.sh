@@ -22,7 +22,7 @@ fi
 #print some log messages
 echo "1: uninstalling blocks server"
 echo "2: purging service unit ($SERVICE_NAME.service) in $DAEMON_DIR"
-sudo rm $SERVICE_FILE $DAEMON_DIR
+sudo rm $DAEMON_DIR/$SERVICE_FILE
 echo "3: regenerating systemd dependency trees"
 sudo systemctl daemon-reload
 
