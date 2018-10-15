@@ -18,6 +18,7 @@
 let cnvs        = document.getElementById('cnvs');
 let name_inpt   = document.getElementById('name_inpt');
 let control_div = document.getElementById('control_div');
+let chat_div    = document.getElementById('chat_div');
 let log         = document.getElementById('log');
 let cmd_inpt    = document.getElementById('cmd_inpt');
 
@@ -47,6 +48,8 @@ let wireframe = false;
 let pressed_keys = new Set();
 //light
 let light = {x: 0.5, y: 0.5, z: -0.7, min_saturation: 0.3, min_lightness: 0.3};
+//do we use the light, or let zengine default (kinda like a torch)
+let torch = false;
 
 /******websocket*********/
 //server address
@@ -83,11 +86,12 @@ let time_last_ms;
 
 /********world*************/
 //size of chunks
-let chunk_size = 16;
-//world seed
-let seed;
-//multiplier for perlin noise
-let hill_height = 8;
+let chunk_size = 22;
+//perlin noise scale factor
+let hill_height = 16;
+//world seed - should be overridden by server, but if have to go offline,
+//we will assign a random one now
+let seed = parseInt(Math.random() * 10);
 
 /*************************************
                STARTUP
@@ -114,7 +118,7 @@ function update(time_now_ms){
     blocks = chunk_blocks.concat(user_blocks);
     handle_keys();
     handle_jump();
-    zengine.render(gen_world(), cam, cnvs, wireframe, false, light);
+    zengine.render(gen_world(), cam, cnvs, wireframe, false, torch ? 0 : light);
     render_names();
     render_hud();
 
@@ -147,30 +151,39 @@ name_inpt.onfocus = () => {name_inpt.style.backgroundColor='#fff'};
 
 /************canvas*********/
 
-cnvs.addEventListener('click', initial_click);
+document.addEventListener('click', initial_click);
 
 function initial_click(){
+    //case of click when the offline message is showing ("click to continue")
+    if (offline){
+        cnvs.requestPointerLock();
+        control_div.style.display = 'block';
+        document.removeEventListener('click', initial_click);
+        return;
+    }
     //if, in all the time it took to type their name, we haven't been sent
     //positions, then go offline
     if (!positions) {
         enter_offline_mode('the server did not communicate who was online');
+        //we will wait for next click to enter offline mode,
+        //so dont request pointer lock or remove this event listener
         return;
     }
-    //check we have inputted a name
-    if (name_inpt.value in positions || !name_inpt.value.length){
-        name_inpt.placeholder = name_inpt.value in positions ?
-                                'name already taken' : 'name required';
+    //check we have inputted a name and that name is not already taken
+    if (!name_inpt.value.length || name_inpt.value in positions){
+        name_inpt.placeholder = name_inpt.value in positions ? 'name already taken' : 'name required';
         name_inpt.value = '';
         name_inpt.style.backgroundColor = '#faa';
         return;
     }
+    //we have a name, set name, join game and show control div
     name = name_inpt.value;
     store_name();
     websocket.send(JSON.stringify({type: 'join', data: name}));
-    name_inpt.style.display = 'none';
     control_div.style.display = 'block';
     cnvs.requestPointerLock();
-    cnvs.removeEventListener('click', initial_click);
+    document.removeEventListener('click', initial_click);
+    name_inpt.style.display = 'none';
 }
 
 function lock_pointer(){
@@ -199,7 +212,11 @@ document.addEventListener('pointerlockchange', function(){
 /********** websocket **********/
 
 websocket.onerror = function(e){
-    enter_offline_mode('meow');
+    enter_offline_mode('server is down');
+}
+
+websocket.onclose = function(e){
+    enter_offline_mode('closed connection unexpectedly');
 }
 
 websocket.onmessage = function(e){
@@ -236,7 +253,6 @@ cmd_inpt.addEventListener('keyup', function(e){
 //handlers initiated in the pointer lock event handler
 
 function kd(e){
-    console.log('key down');
     sprinting = e.shiftKey;
     if ('f'.includes(e.key)){
         switch (e.key){
@@ -329,10 +345,10 @@ function mc(e){
                 if (blocks[i].obj != 'grass')
                 if (offline){
                     //yes, we are modifying array that we are iterating over, but will return (escape) immediately so is fine
-                    blocks.splice(i, 1)
+                    user_blocks.splice(i, 1)
                 } else {
                     websocket.send(JSON.stringify({type:'block_remove', 'data': blocks[i]}));
-                    }
+                }
             } else {              //left click (place)
                 let nb = {x: blocks[i].x + blk[j].vect.x,
                           y: blocks[i].y + blk[j].vect.y,
@@ -341,9 +357,9 @@ function mc(e){
                 //check if trying to place block where am standing, still return if was
                 if (nb.x != Math.floor(cam.x) || nb.y != Math.floor(cam.y) || (nb.z != Math.floor(cam.z) && nb.z != Math.floor(cam.z)-1)){
                     if (offline){
-                        blocks.push(block);
+                        user_blocks.push(nb);
                     } else {
-                        websocket.send(JSON.stringify({type:'block_place', 'data': block}));
+                        websocket.send(JSON.stringify({type:'block_place', 'data': nb}));
                     }
                 }
             }
@@ -383,6 +399,13 @@ function render_hud(){
     ctx.beginPath();
     ctx.arc(cnvs.width/2,cnvs.height/2,hud_radius,0,Math.PI*2);
     ctx.stroke();
+    if (offline) {
+        ctx.font = '12px monospace';
+        ctx.fillStyle = '#fff';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillText('offline mode', 10, 10);
+    }
 }
 
 function handle_jump(){
@@ -490,8 +513,19 @@ function render_names(){
 }
 
 function enter_offline_mode(message){
-    control_div.style.display = 'none';
-    console.log('entering offline,,, cos of ', message);
+    offline = true;
+    name_inpt.style.display = 'none';
+    chat_div.style.display = 'none';
+    ctx.fillStyle = '#a00';
+    ctx.fillRect(0, 0, cnvs.width, cnvs.height);
+    ctx.fillStyle = '#fff';
+    ctx.font = '32px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('server error!', cnvs.width/2, cnvs.height/2 - 100);
+    ctx.font = '20px monospace';
+    ctx.fillText('reason: [' + message + ']' , cnvs.width/2, cnvs.height/2);
+    ctx.fillText('click to enter offline mode', cnvs.width/2, cnvs.height/2 + 50);
 }
 
 function pause(){

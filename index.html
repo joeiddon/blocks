@@ -32,6 +32,7 @@
     #log {
         height: 200px;
         overflow: auto;
+        border-top: 1px solid;
     }
     #cmd_inpt {
         width: inherit;
@@ -45,8 +46,12 @@
 <body>
   <input type='text' id='name_inpt' placeholder='display name'></input>
   <div id='control_div'>
+    <input id='torch' type='checkbox' onchange='torch=this.checked'></input>
+    <label for='torch'>torch mode</label>
+    <div id='chat_div'>
       <div id='log'></div>
       <input type='text' id='cmd_inpt' placeholder='chat or `help` for cmds'></input>
+    </div>
   </div>
   <canvas id='cnvs'></canvas>
   <script src='world_generation.js'></script>
