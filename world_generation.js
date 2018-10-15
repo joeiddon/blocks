@@ -10,13 +10,13 @@
 let gradients = {};
 
 function dot_prod_grid(x, y, vx, vy){
-    //the PRNG is seeded with the number xseedy,
+    //the PRNG is seeded with (seed XOR x) * y
     //i,e with: x = 1, y = 4, seed = 321 then 13214
     let g_vect;
     if (gradients[[vx,vy]]){
         g_vect = gradients[[vx,vy]];
     } else {
-        let theta = new MersenneTwister(seed ^ vx ^ 31 * vy).random() * 2 * Math.PI;
+        let theta = new MersenneTwister(seed ^ vx * vy).random() * 2 * Math.PI;
         g_vect = {x: Math.cos(theta), y: Math.sin(theta)};
         gradients[[vx,vy]] = g_vect;
     }

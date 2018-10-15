@@ -1,5 +1,7 @@
 <html>
 <head>
+  <title>Blocks</title>
+  <link rel='icon' href='favicon.png'></link>
   <style>
     html, body {
         padding: 0;
@@ -8,23 +10,28 @@
     #cnvs {
         background-color: #203;
     }
-    #info {
+    #name_inpt {
+        position: fixed;
+        width: 200px;
+        height: 40px;
+        left: calc(50% - 100px);
+        top: 50%;
+        font-size: 20px;
+        font-family: monospace;
+        text-align: center;
+    }
+    #control_div {
+        display: none;
+        width: 160px;
         position: fixed;
         bottom: 0;
         right: 0;
         padding: 4px;
         color: #fff;
     }
-    #name_inpt {
-        width: 160px;
-    }
-    #control_div {
-        display: none;
-        width: 160px;
-    }
     #log {
         height: 200px;
-        overflow:auto;
+        overflow: auto;
     }
     #cmd_inpt {
         width: inherit;
@@ -36,15 +43,10 @@
   <script src='banksean_mersenne.js'></script>
 </head>
 <body>
-  <div id='info'>
-    <div id='name_div'>
-      <label for='name_inpt'>your display name<label>
-      <input type='text' id='name_inpt' placeholder='please enter a new name'></input>
-    </div>
-    <div id='control_div'>
-        <div id='log'></div>
-        <input type='text' id='cmd_inpt' placeholder='chat or `help` for cmds'></input>
-    </div>
+  <input type='text' id='name_inpt' placeholder='display name'></input>
+  <div id='control_div'>
+      <div id='log'></div>
+      <input type='text' id='cmd_inpt' placeholder='chat or `help` for cmds'></input>
   </div>
   <canvas id='cnvs'></canvas>
   <script src='world_generation.js'></script>

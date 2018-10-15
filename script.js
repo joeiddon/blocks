@@ -8,12 +8,14 @@
 /*
  - need more robust checking for when server is down
    use onreadystate...
+ - finish offline stuff
+ - add button to go straight to offline play
+ - redo perlin radom
 */
 
 
 /****DOM elements (+ctx)*******/
 let cnvs        = document.getElementById('cnvs');
-let name_div    = document.getElementById('name_div');
 let name_inpt   = document.getElementById('name_inpt');
 let control_div = document.getElementById('control_div');
 let log         = document.getElementById('log');
@@ -22,9 +24,14 @@ let cmd_inpt    = document.getElementById('cmd_inpt');
 let ctx = cnvs.getContext('2d');
 
 /*******misc*******/
+//we go offline when the server is down or something
+let offline = false;
 //the current grass chunk blocks are stored
 let chunk_blocks;
 //array to store player-placed blocks
+//if offline, this will be directly modified by us, otherwise
+//the server will update this with its version of the blocks which we
+//can ask to add or remove from
 let user_blocks = [];
 //global to store chunk_blocks and user_blocks
 let blocks;
@@ -32,7 +39,7 @@ let blocks;
 let positions;
 //sensitivity of mouse movement
 let sens = 2;
-//radius HUD of circle
+//radius of HUD circle
 let hud_radius = 4;
 //wireframe for rendering
 let wireframe = false;
@@ -40,8 +47,6 @@ let wireframe = false;
 let pressed_keys = new Set();
 //light
 let light = {x: 0.5, y: 0.5, z: -0.7, min_saturation: 0.3, min_lightness: 0.3};
-//random_names
-let names = ['bob', 'bill', 'jim', 'fish', 'cat'];
 
 /******websocket*********/
 //server address
@@ -58,9 +63,11 @@ let name;
 //position of camera
 let cam = {x: 0, y: 0, z: 1+player_height, yaw: 0, pitch: 0, roll: 0, fov: 90};
 //how far can we see?
-let horizon = 10;
+let horizon = 12;
 //speed, units per second
-let spd = 4;
+let speeds = {normal: 5, sprint: 15};
+//are we sprinting?
+let sprinting = false;
 
 /*********jumping******/
 let jump_spd = 0;         //units per second
@@ -80,7 +87,7 @@ let chunk_size = 16;
 //world seed
 let seed;
 //multiplier for perlin noise
-let hill_height = 4;
+let hill_height = 8;
 
 /*************************************
                STARTUP
@@ -111,8 +118,9 @@ function update(time_now_ms){
     render_names();
     render_hud();
 
-    if (pos_last_ms + pos_int_ms < time_now_ms){
-        pos_last_ms = time_now_ms;
+    if (!offline && pos_last_ms + pos_int_ms < time_now_ms){
+        //send next position as if we had sent at the right time
+        pos_last_ms += pos_int_ms;
         send_position();
     }
 
@@ -133,23 +141,33 @@ function fts(){
     cnvs.height = innerHeight;
 }
 
+/*********name input***************/
+
+name_inpt.onfocus = () => {name_inpt.style.backgroundColor='#fff'};
+
 /************canvas*********/
 
 cnvs.addEventListener('click', initial_click);
 
 function initial_click(){
-    //check we have been sent the positions (names) and we havent't
-    //chosen someone else's name or no name
-    if (!positions || name_inpt.value in positions || !name_inpt.value.length){
+    //if, in all the time it took to type their name, we haven't been sent
+    //positions, then go offline
+    if (!positions) {
+        enter_offline_mode('the server did not communicate who was online');
+        return;
+    }
+    //check we have inputted a name
+    if (name_inpt.value in positions || !name_inpt.value.length){
+        name_inpt.placeholder = name_inpt.value in positions ?
+                                'name already taken' : 'name required';
         name_inpt.value = '';
-        ctx.fillStyle = 'rgba(255,0,0,0.4)';
-        ctx.fillRect(0, 0, cnvs.width, cnvs.height);
+        name_inpt.style.backgroundColor = '#faa';
         return;
     }
     name = name_inpt.value;
     store_name();
     websocket.send(JSON.stringify({type: 'join', data: name}));
-    name_div.style.display = 'none';
+    name_inpt.style.display = 'none';
     control_div.style.display = 'block';
     cnvs.requestPointerLock();
     cnvs.removeEventListener('click', initial_click);
@@ -165,11 +183,10 @@ document.addEventListener('pointerlockchange', function(){
         update_id = requestAnimationFrame(update);
         document.addEventListener('mousemove', mm);
         document.addEventListener('click', mc);
-        document.addEventListener('keypress', kd);
+        document.addEventListener('keydown', kd);
         document.addEventListener('keyup', ku);
     } else {
-        ctx.fillStyle = 'rgba(255,0,0,0.4)';
-        ctx.fillRect(0, 0, cnvs.width, cnvs.height);
+        pause();
         cnvs.addEventListener('click', lock_pointer);
         cancelAnimationFrame(update_id);
         document.removeEventListener('mousemove', mm);
@@ -182,7 +199,7 @@ document.addEventListener('pointerlockchange', function(){
 /********** websocket **********/
 
 websocket.onerror = function(e){
-    document.body.innerText = 'server error: likely server script is not running';
+    enter_offline_mode('meow');
 }
 
 websocket.onmessage = function(e){
@@ -219,6 +236,8 @@ cmd_inpt.addEventListener('keyup', function(e){
 //handlers initiated in the pointer lock event handler
 
 function kd(e){
+    console.log('key down');
+    sprinting = e.shiftKey;
     if ('f'.includes(e.key)){
         switch (e.key){
             case 'f':
@@ -226,12 +245,12 @@ function kd(e){
             break;
         }
     } else {
-        pressed_keys.add(e.key);
+        pressed_keys.add(e.key.toLowerCase());
     }
 }
 
 function ku(e){
-    pressed_keys.delete(e.key);
+    pressed_keys.delete(e.key.toLowerCase());
 }
 
 function handle_keys(){
@@ -308,7 +327,12 @@ function mc(e){
             if (!inside) continue;
             if (e.button == 2) {  //right click (remove)
                 if (blocks[i].obj != 'grass')
-                websocket.send(JSON.stringify({type:'block_remove', 'data': blocks[i]}))
+                if (offline){
+                    //yes, we are modifying array that we are iterating over, but will return (escape) immediately so is fine
+                    blocks.splice(i, 1)
+                } else {
+                    websocket.send(JSON.stringify({type:'block_remove', 'data': blocks[i]}));
+                    }
             } else {              //left click (place)
                 let nb = {x: blocks[i].x + blk[j].vect.x,
                           y: blocks[i].y + blk[j].vect.y,
@@ -316,7 +340,11 @@ function mc(e){
                           obj: 'cube'};
                 //check if trying to place block where am standing, still return if was
                 if (nb.x != Math.floor(cam.x) || nb.y != Math.floor(cam.y) || (nb.z != Math.floor(cam.z) && nb.z != Math.floor(cam.z)-1)){
-                    websocket.send(JSON.stringify({type:'block_place', 'data': nb}))
+                    if (offline){
+                        blocks.push(block);
+                    } else {
+                        websocket.send(JSON.stringify({type:'block_place', 'data': block}));
+                    }
                 }
             }
             return;
@@ -337,7 +365,7 @@ function mm(e){
 
 function step(angle){
     //step distance
-    let sd = spd * time_diff_s;
+    let sd = speeds[sprinting ? 'sprint' : 'normal'] * time_diff_s;
     let nx = cam.x + Math.sin(zengine.to_rad(cam.yaw + angle)) * sd;
     let ny = cam.y + Math.cos(zengine.to_rad(cam.yaw + angle)) * sd;
     //bs is an array of blocks I will be within (i.e. must have no length to take step)
@@ -407,11 +435,25 @@ function gen_world(){
 
 function startup_screen(){
     ctx.fillStyle = '#fff';
-    ctx.font = '16px monospace';
+    ctx.font = '128px monospace';
     ctx.textBaseline = 'middle';
     ctx.textAlign = 'center';
-    ctx.fillText('click anywhere to start (ESC to escape)', cnvs.width/2, cnvs.height/2);
-    ctx.fillText('DISCLAIMER: I ACCEPT NO RESPONSIBILITY FOR THE PLAYING OF THIS GAME', cnvs.width/2, cnvs.height/2+32);
+    ctx.fillText('blocks', cnvs.width/2, cnvs.height/2-128)
+    ctx.font = '16px monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText('1. enter your name:', cnvs.width/2-150, cnvs.height/2-20);
+    ctx.fillText('2. click the purple to begin', cnvs.width/2-150, cnvs.height/2+60);
+    ctx.textAlign = 'center';
+    ctx.fillText('controls', cnvs.width/2, cnvs.height/2+90);
+    let controls = [['movement', 'WASD'], ['jump', 'space'], ['sprint', 'shift'], ['place', 'left click'], ['delete', 'right click']];
+    for (let i = 0; i < controls.length; i++){
+        ctx.textAlign = 'right';
+        ctx.fillText(controls[i][0]+' ', cnvs.width/2, cnvs.height/2 + 120 + 20 * i);
+        ctx.textAlign = 'left';
+        ctx.fillText(' ' + controls[i][1], cnvs.width/2, cnvs.height/2 + 120 + 20 * i);
+    }
+    ctx.textAlign = 'center';
+    ctx.fillText('DISCLAIMER: I ACCEPT NO RESPONSIBILITY FOR THE PLAYING OF THIS GAME', cnvs.width/2, cnvs.height-20);
 }
 
 function send_position(){
@@ -447,3 +489,12 @@ function render_names(){
     }
 }
 
+function enter_offline_mode(message){
+    control_div.style.display = 'none';
+    console.log('entering offline,,, cos of ', message);
+}
+
+function pause(){
+    ctx.fillStyle = 'rgba(255,0,0,0.4)';
+    ctx.fillRect(0, 0, cnvs.width, cnvs.height);
+}
