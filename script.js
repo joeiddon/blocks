@@ -6,11 +6,9 @@
 
 //TODO:
 /*
- - need more robust checking for when server is down
-   use onreadystate...
- - finish offline stuff
  - add button to go straight to offline play
- - redo perlin radom
+ - write the random number generator myself (as this guys' is overly complicated
+ - make an experimental version of zengine that hashes trig values to speed up rendering
 */
 
 
@@ -403,8 +401,8 @@ function render_hud(){
         ctx.font = '12px monospace';
         ctx.fillStyle = '#fff';
         ctx.textAlign = 'left';
-        ctx.textBaseline = 'top';
-        ctx.fillText('offline mode', 10, 10);
+        ctx.textBaseline = 'bottom';
+        ctx.fillText('offline mode', 10, cnvs.height-10);
     }
 }
 
@@ -468,7 +466,12 @@ function startup_screen(){
     ctx.fillText('2. click the purple to begin', cnvs.width/2-150, cnvs.height/2+60);
     ctx.textAlign = 'center';
     ctx.fillText('controls', cnvs.width/2, cnvs.height/2+90);
-    let controls = [['movement', 'WASD'], ['jump', 'space'], ['sprint', 'shift'], ['place', 'left click'], ['delete', 'right click']];
+    let controls = [['movement', 'WASD'],
+                    ['jump', 'space'],
+                    ['sprint', 'shift'],
+                    ['place', 'left click'],
+                    ['delete', 'right click'],
+                    ['pause', 'esc']];
     for (let i = 0; i < controls.length; i++){
         ctx.textAlign = 'right';
         ctx.fillText(controls[i][0]+' ', cnvs.width/2, cnvs.height/2 + 120 + 20 * i);
