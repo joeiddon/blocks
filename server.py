@@ -4,7 +4,7 @@ import asyncio,websockets,json,random,ssl
 PORT = 443
 USERS = set()       #set of WebSocketServerProtocol instances
 POSITIONS = {}      #will store the positions in the format {user_name: {x: ,y: ,z: ,yaw: }, ...}
-USER_BLOCKS = set() #stores the user placed blocks (orange cubes & eventually more) in format {x: ,y: ,z: ,obj: }
+USER_BLOCKS = set() #stores the user placed blocks (orange cubes & eventually more) in format (x, y, z, obj)
 SEED = random.randint(0, 50) #seeds perlin noise func on client side to generate all grass terrain
 
 #TODO:
