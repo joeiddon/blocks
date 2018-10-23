@@ -1,4 +1,4 @@
-blocks_multiplayer
+Blocks
 =====
 
 *(work in progress)*
