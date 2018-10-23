@@ -4,14 +4,11 @@ let player_height = 1.7;
 let objects = {
     cube: function(){
         let col = {h: 37, s: 100, l: 60};
-        return [{verts: [{x:0, y:0, z:0}, {x:0, y:1, z:0}, {x:0, y:1, z:1}, {x:0, y:0, z:1}], col: col, vect: {x:-1, y: 0, z: 0}},
-                {verts: [{x:0, y:0, z:0}, {x:1, y:0, z:0}, {x:1, y:0, z:1}, {x:0, y:0, z:1}], col: col, vect: {x: 0, y:-1, z: 0}},
-                {verts: [{x:0, y:0, z:0}, {x:1, y:0, z:0}, {x:1, y:1, z:0}, {x:0, y:1, z:0}], col: col, vect: {x: 0, y: 0, z:-1}},
-                {verts: [{x:1, y:0, z:0}, {x:1, y:1, z:0}, {x:1, y:1, z:1}, {x:1, y:0, z:1}], col: col, vect: {x: 1, y: 0, z: 0}},
-                {verts: [{x:0, y:1, z:0}, {x:1, y:1, z:0}, {x:1, y:1, z:1}, {x:0, y:1, z:1}], col: col, vect: {x: 0, y: 1, z: 0}},
-                {verts: [{x:0, y:0, z:1}, {x:1, y:0, z:1}, {x:1, y:1, z:1}, {x:0, y:1, z:1}], col: col, vect: {x: 0, y: 0, z: 1}}];
+        return get_cuboid(0, 0, 0, 1, 1, 1, col);
     },
     grass: function(){
+        //to speed up rendering, the grass does not have a bottom,
+        //so we can't use get_cuboid :(
         return [{verts: [{x:0, y:0, z:0}, {x:0, y:1, z:0}, {x:0, y:1, z:1}, {x:0, y:0, z:1}], col: {h: 0, s: 17, l: 38},  vect: {x:-1, y: 0, z: 0}},
                 {verts: [{x:0, y:0, z:0}, {x:1, y:0, z:0}, {x:1, y:0, z:1}, {x:0, y:0, z:1}], col: {h: 0, s: 17, l: 38},  vect: {x: 0, y:-1, z: 0}},
 //                {verts: [{x:0, y:0, z:0}, {x:1, y:0, z:0}, {x:1, y:1, z:0}, {x:0, y:1, z:0}], col: {h: 0, s: 17, l: 38},  vect: {x: 0, y: 0, z:-1}},
@@ -24,17 +21,19 @@ let objects = {
         let fc =  {h: 299, s: 66, l: 68};
         let sz = 1; //width of body; proportions based of this
         let h  = player_height;
-        let head =      get_cubiod(    -sz/4, -sz/6, h * 4/5, sz/2, sz/3, h * 1/5, [col,fc,col,col,col,col]);
-        let body =      get_cubiod(    -sz/2, -sz/4, h * 2/5,   sz, sz/2, h * 2/5, col);
-        let left_leg =  get_cubiod(sz/2-sz/4, -sz/6,       0, sz/4, sz/3, h * 2/5, col);
-        let right_leg = get_cubiod(    -sz/2, -sz/6,       0, sz/4, sz/3, h * 2/5, col);
+        let head =      get_cuboid(    -sz/4, -sz/6, h * 4/5, sz/2, sz/3, h * 1/5, [col,fc,col,col,col,col]);
+        let body =      get_cuboid(    -sz/2, -sz/4, h * 2/5,   sz, sz/2, h * 2/5, col);
+        let left_leg =  get_cuboid(sz/2-sz/4, -sz/6,       0, sz/4, sz/3, h * 2/5, col);
+        let right_leg = get_cuboid(    -sz/2, -sz/6,       0, sz/4, sz/3, h * 2/5, col);
         return [].concat(body, head, left_leg, right_leg);
     }
 }
 
-function get_cubiod(x, y, z, lx, ly, lz, color){
-    //gives cuboid at position (x,y,z) with dimensions (lx,ly,lz), coloured by the col: either a single colour, or
-    //an array of face colors (right,forward,up,left,back,down)
+function get_cuboid(x, y, z, lx, ly, lz, color){
+    //gives cuboid: at position (x,y,z),
+    //              with dimensions (lx,ly,lz),
+    //              coloured by the col: either a single colour, or
+    //                                   an array of face colors (right,forward,up,left,back,down)
     //the position is from the bottom corner, with the cuboid extending into the positive octant
     let cols = color.length ? color : [color,color,color,color,color,color];
     let cuboid = [{verts: [{x: 0, y: 0, z: 0}, {x: 0, y:ly, z: 0}, {x: 0, y:ly, z:lz}, {x: 0, y: 0, z:lz}], col: cols[3], vect: {x:-1, y: 0, z: 0}},
