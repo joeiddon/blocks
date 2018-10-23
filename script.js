@@ -9,6 +9,8 @@
  - add button to go straight to offline play
  - write the random number generator myself (as this guys' is overly complicated
  - make an experimental version of zengine that hashes trig values to speed up rendering
+ - allow for "cliffs" (stacked blocks on ground) - may need to implement bios
+ - add more blocks (bottom bar and random trees?)
 */
 
 
@@ -64,7 +66,7 @@ let name;
 //position of camera
 let cam = {x: 0, y: 0, z: 1+player_height, yaw: 0, pitch: 0, roll: 0, fov: 90};
 //how far can we see?
-let horizon = 12;
+let horizon = 16;
 //speed, units per second
 let speeds = {normal: 5, sprint: 15};
 //are we sprinting?
@@ -83,10 +85,10 @@ let time_diff_s;
 let time_last_ms;
 
 /********world*************/
-//size of chunks
-let chunk_size = 22;
+//size of chunks (should be >= 2 * horizon - see world_generation.js)
+let chunk_size = 32;
 //perlin noise scale factor
-let hill_height = 16;
+let hill_height = 24;
 //world seed - should be overridden by server, but if have to go offline,
 //we will assign a random one now
 let seed = parseInt(Math.random() * 10);
@@ -432,7 +434,7 @@ function gen_world(){
     let world = [];
     for (let i = 0; i < blocks.length; i++){
         if (zengine.distance(blocks[i], cam) > horizon) continue;
-        world = world.concat(objects[blocks[i].obj]().map(
+        world.push(...objects[blocks[i].obj]().map(
             f => ({verts: f.verts.map(zengine.translate(blocks[i].x,
                                                         blocks[i].y,
                                                         blocks[i].z)),
@@ -442,7 +444,7 @@ function gen_world(){
     }
     for (let player in positions){
         if (player == name) continue;
-        world = world.concat(objects.person().map(
+        world.push(...objects.person().map(
             f => ({verts: f.verts.map(zengine.z_axis_rotate(zengine.to_rad(-positions[player].yaw)))
                                  .map(zengine.translate(positions[player].x,
                                                         positions[player].y,
