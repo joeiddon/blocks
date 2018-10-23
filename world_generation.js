@@ -96,8 +96,8 @@ function gen_chunk_blocks(){
     //what to add to x and y for the other 3 chunks
     let ax = (cam.x % chunk_size) > ((cam.x >= 0 ? 1 : -1) * chunk_size / 2) ? 1 : -1;
     let ay = (cam.y % chunk_size) > ((cam.y >= 0 ? 1 : -1) * chunk_size / 2) ? 1 : -1;
-    chunk_blocks = chunk_blocks.concat(get_chunk(cx, cy));
-    chunk_blocks = chunk_blocks.concat(get_chunk(cx + ax, cy));
-    chunk_blocks = chunk_blocks.concat(get_chunk(cx, cy + ay));
-    chunk_blocks = chunk_blocks.concat(get_chunk(cx + ax, cy + ay));
+    chunk_blocks = [].concat(get_chunk(cx, cy),
+                             get_chunk(cx + ax, cy),
+                             get_chunk(cx, cy + ay),
+                             get_chunk(cx + ax, cy + ay));
 }
