@@ -27,7 +27,8 @@ let ctx = cnvs.getContext('2d');
 /*******misc*******/
 //we go offline when the server is down or something
 let offline = false;
-//the current grass chunk blocks are stored
+//the current grass chunk blocks are stored globally
+//so they can be accessed from the mouse click listener etc.
 let chunk_blocks;
 //array to store player-placed blocks
 //if offline, this will be directly modified by us, otherwise
@@ -303,18 +304,27 @@ function mc(e){
     if (e.button != 0 && e.button != 2) return;
     blocks.sort((a,b)=>zengine.distance(cam, {x:a.x+0.5, y: a.y+0.5, z:a.z+0.5}) -
                        zengine.distance(cam, {x:b.x+0.5, y: b.y+0.5, z:b.z+0.5}));
+    //use a similar logic from zengine.js to effectively render each block
+    //for each block, we check if our click has intersected it and handle appropriately
+    //i.e. read zengine.js for explanation :)
+    let cam_vect = {x: Math.sin(zengine.to_rad(cam.yaw)) * Math.cos(zengine.to_rad(cam.pitch)),
+                    y: Math.cos(zengine.to_rad(cam.yaw)) * Math.cos(zengine.to_rad(cam.pitch)),
+                    z: Math.sin(zengine.to_rad(cam.pitch))}
     for (let i = 0; i < blocks.length; i++){
         //every object is just treated as a cube for speed
-        let blk = objects.cube().map(f => ({verts: f.verts.map(zengine.translate(blocks[i].x, blocks[i].y, blocks[i].z)),
-                                            vect:  f.vect}))
-                                .sort((a,b)=>zengine.distance(cam, zengine.centroid(a.verts))-
-                                             zengine.distance(cam, zengine.centroid(b.verts)));
-        for (let j = 0; j < blk.length; j++){
-            let f = blk[j].verts.map(zengine.translate(-cam.x, -cam.y, -cam.z))
-                                .map(zengine.z_axis_rotate(zengine.to_rad(cam.yaw)))
-                                .map(zengine.y_axis_rotate(zengine.to_rad(cam.roll)))
-                                .map(zengine.x_axis_rotate(zengine.to_rad(cam.pitch)))
-                                .map(zengine.translate(cam.x, cam.y, cam.z));
+        let block = objects.cube().map(f => ({verts: f.verts.map(zengine.translate(blocks[i].x, blocks[i].y, blocks[i].z)),
+                                              vect:  f.vect}))
+                                  .sort((a,b)=>zengine.distance(cam, zengine.centroid(a.verts))-
+                                               zengine.distance(cam, zengine.centroid(b.verts)));
+        for (let j = 0; j < block.length; j++){
+            let f = block[j].verts.map(zengine.translate(-cam.x, -cam.y, -cam.z))
+                                  .map(zengine.z_axis_rotate(zengine.to_rad(cam.yaw)))
+                                  .map(zengine.y_axis_rotate(zengine.to_rad(cam.roll)))
+                                  .map(zengine.x_axis_rotate(zengine.to_rad(cam.pitch)))
+                                  .map(zengine.translate(cam.x, cam.y, cam.z));
+            //without the "infront of cam" check, blocks get placed behind us sometimes
+            //if (block[j].verts.every(c=>zengine.dot_prod({x: c.x-cam.x, y: c.y-cam.y, z: c.z-cam.z}, cam_vect) < 0)) continue;
+
             //convert face to 2d
             f = f.map(c=>({x: zengine.to_deg(Math.atan2(c.x - cam.x, c.y - cam.y)),
                            y: zengine.to_deg(Math.atan2(c.z - cam.z, c.y - cam.y))}));
@@ -344,15 +354,17 @@ function mc(e){
             if (e.button == 2) {  //right click (remove)
                 if (blocks[i].obj != 'grass')
                 if (offline){
-                    //yes, we are modifying array that we are iterating over, but will return (escape) immediately so is fine
-                    user_blocks.splice(i, 1)
+                    user_blocks = user_blocks.filter(b=>!(b.x == blocks[i].x &&
+                                                          b.y == blocks[i].y &&
+                                                          b.z == blocks[i].z));
+
                 } else {
                     websocket.send(JSON.stringify({type:'block_remove', 'data': blocks[i]}));
                 }
             } else {              //left click (place)
-                let nb = {x: blocks[i].x + blk[j].vect.x,
-                          y: blocks[i].y + blk[j].vect.y,
-                          z: blocks[i].z + blk[j].vect.z,
+                let nb = {x: blocks[i].x + block[j].vect.x,
+                          y: blocks[i].y + block[j].vect.y,
+                          z: blocks[i].z + block[j].vect.z,
                           obj: 'cube'};
                 //check if trying to place block where am standing, still return if was
                 if (nb.x != Math.floor(cam.x) || nb.y != Math.floor(cam.y) || (nb.z != Math.floor(cam.z) && nb.z != Math.floor(cam.z)-1)){
