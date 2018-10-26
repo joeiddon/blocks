@@ -21,15 +21,21 @@ TODO:
 //to be able to match up corresponding chunks, we must look at last line
 //let last_line = [];
 
+//gives a deterministic pseudo-random number based on two inputs and
+//the random seed - a bit like a hash
+//requires seed to be a char (uint8)
+function random(x, y){
+    //times seed by x and y multiplied by two primes and then normalise
+    //with the size of the seed
+    return seed * 17 * (x * 19 + y * 27) % 97 / 97;
+}
 
 function dot_prod_grid(x, y, vx, vy){
-    //the PRNG is seeded with (seed XOR x) * y
-    //i,e with: x = 1, y = 4, seed = 321 then 13214
     let g_vect;
     if (gradients[[vx,vy]]){
         g_vect = gradients[[vx,vy]];
     } else {
-        let theta = new MersenneTwister(seed ^ vx * vy).random() * 2 * Math.PI;
+        let theta = random(vx, vy) * 2 * Math.PI;
         g_vect = {x: Math.cos(theta), y: Math.sin(theta)};
         gradients[[vx,vy]] = g_vect;
     }

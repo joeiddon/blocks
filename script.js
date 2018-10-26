@@ -13,6 +13,7 @@
  - add more blocks (bottom bar and random trees?)
  - experiment with the floor blocks - not just grass ((vx + vy) % 2 == 0) ?
  - minimap of the heights of the blocks
+ - speed up `mc` listener
 */
 
 
@@ -93,8 +94,8 @@ let chunk_size = 32;
 //perlin noise scale factor
 let hill_height = 12;
 //world seed - should be overridden by server, but if have to go offline,
-//we will assign a random one now
-let seed = parseInt(Math.random() * 10);
+//we will assign a random one now - !must be a char (uint8)!
+let seed = parseInt(Math.random() * 256);
 
 /*************************************
                STARTUP
@@ -306,7 +307,7 @@ function mc(e){
     if (e.button != 0 && e.button != 2) return;
     blocks.sort((a,b)=>zengine.distance(cam, {x:a.x+0.5, y: a.y+0.5, z:a.z+0.5}) -
                        zengine.distance(cam, {x:b.x+0.5, y: b.y+0.5, z:b.z+0.5}));
-    //use a similar logic from zengine.js to effectively render each block
+    //use a similar logic from zengine.js to effectively render each block,
     //for each block, we check if our click has intersected it and handle appropriately
     //i.e. read zengine.js for explanation :)
     let cam_vect = {x: Math.sin(zengine.to_rad(cam.yaw)) * Math.cos(zengine.to_rad(cam.pitch)),
@@ -325,7 +326,7 @@ function mc(e){
                                   .map(zengine.x_axis_rotate(zengine.to_rad(cam.pitch)))
                                   .map(zengine.translate(cam.x, cam.y, cam.z));
             //without the "infront of cam" check, blocks get placed behind us sometimes
-            //if (block[j].verts.every(c=>zengine.dot_prod({x: c.x-cam.x, y: c.y-cam.y, z: c.z-cam.z}, cam_vect) < 0)) continue;
+            if (block[j].verts.every(c=>zengine.dot_prod({x: c.x-cam.x, y: c.y-cam.y, z: c.z-cam.z}, cam_vect) < 0)) continue;
 
             //convert face to 2d
             f = f.map(c=>({x: zengine.to_deg(Math.atan2(c.x - cam.x, c.y - cam.y)),
