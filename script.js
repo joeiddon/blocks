@@ -33,7 +33,7 @@ let offline = false;
 //the current grass chunk blocks are stored globally
 //so they can be accessed from the mouse click listener etc.
 let chunk_blocks;
-//array to store player-placed blocks
+//array to store user-placed blocks
 //if offline, this will be directly modified by us, otherwise
 //the server will update this with its version of the blocks which we
 //can ask to add or remove from
@@ -51,9 +51,9 @@ let wireframe = false;
 //set of currently pressed keys
 let pressed_keys = new Set();
 //light
-let light = {yaw: 10, pitch: -90, min_saturation: 0.3, min_lightness: 0.3};
-//do we use the light, or let zengine default (kinda like a torch)
-let torch = false;
+let light = {yaw: 30, pitch: -60, min_saturation: 0.3, min_lightness: 0.3};
+//day and night lengths (sun revolution speed) in seconds
+let sun_times_s = {day: 40, night: 30};
 
 /******websocket*********/
 //server address
@@ -75,6 +75,8 @@ let horizon = 16;
 let speeds = {normal: 5, sprint: 15};
 //are we sprinting?
 let sprinting = false;
+//do we use the light, or let zengine default (kinda like a torch)
+let torch = false;
 
 /*********jumping******/
 let jump_spd = 0;         //units per second
@@ -84,7 +86,7 @@ let gravity = 64;         //units per second ^ 2
 /*****anim. frame globals****/
 //id returned from requestAnimationFrame
 let update_id;
-//timing globals
+//timing globals (prefix indicates unit - seconds or milliseconds)
 let time_diff_s;
 let time_last_ms;
 
@@ -122,6 +124,7 @@ function update(time_now_ms){
     blocks = chunk_blocks.concat(user_blocks);
     handle_keys();
     handle_jump();
+    update_sun();
     zengine.render(gen_world(), cam, cnvs, wireframe, false, torch ? 0 : light);
     render_names();
     render_hud();
@@ -135,6 +138,13 @@ function update(time_now_ms){
     update_id = requestAnimationFrame(update);
 }
 
+function enter_the_blocks(){
+    name_inpt.style.display = 'none';
+    control_div.style.display = 'block';
+    cnvs.style.backgroundColor = '#eea';
+    document.removeEventListener('click', initial_click);
+    cnvs.requestPointerLock();
+}
 
 /*************************************
             EVENT LISTENERS
@@ -160,9 +170,7 @@ document.addEventListener('click', initial_click);
 function initial_click(){
     //case of click when the offline message is showing ("click to continue")
     if (offline){
-        cnvs.requestPointerLock();
-        control_div.style.display = 'block';
-        document.removeEventListener('click', initial_click);
+        enter_the_blocks();
         return;
     }
     //if, in all the time it took to type their name, we haven't been sent
@@ -184,10 +192,8 @@ function initial_click(){
     name = name_inpt.value;
     store_name();
     websocket.send(JSON.stringify({type: 'join', data: name}));
-    control_div.style.display = 'block';
-    cnvs.requestPointerLock();
-    document.removeEventListener('click', initial_click);
-    name_inpt.style.display = 'none';
+
+    enter_the_blocks();
 }
 
 function lock_pointer(){
@@ -354,14 +360,13 @@ function mc(e){
                 }
             }
             if (!inside) continue;
+            console.log('done');
             if (e.button == 2) {  //right click (remove)
                 if (blocks[i].obj != 'grass')
-                if (offline){
                     user_blocks = user_blocks.filter(b=>!(b.x == blocks[i].x &&
                                                           b.y == blocks[i].y &&
                                                           b.z == blocks[i].z));
-
-                } else {
+                if (!offline){
                     websocket.send(JSON.stringify({type:'block_remove', 'data': blocks[i]}));
                 }
             } else {              //left click (place)
@@ -551,4 +556,9 @@ function enter_offline_mode(message){
 function pause(){
     ctx.fillStyle = 'rgba(255,0,0,0.4)';
     ctx.fillRect(0, 0, cnvs.width, cnvs.height);
+}
+
+function update_sun(){
+    light.pitch += 360 * time_diff_s / (light.pitch < 0 ? sun_times_s.day : sun_times_s.night);
+    light.pitch %= 360;
 }
