@@ -11,6 +11,8 @@
  - make an experimental version of zengine that hashes trig values to speed up rendering
  - allow for "cliffs" (stacked blocks on ground) - may need to implement bios
  - add more blocks (bottom bar and random trees?)
+ - experiment with the floor blocks - not just grass ((vx + vy) % 2 == 0) ?
+ - minimap of the heights of the blocks
 */
 
 
@@ -48,7 +50,7 @@ let wireframe = false;
 //set of currently pressed keys
 let pressed_keys = new Set();
 //light
-let light = {x: 0.5, y: 0.5, z: -0.7, min_saturation: 0.3, min_lightness: 0.3};
+let light = {yaw: 10, pitch: -90, min_saturation: 0.3, min_lightness: 0.3};
 //do we use the light, or let zengine default (kinda like a torch)
 let torch = false;
 
@@ -89,7 +91,7 @@ let time_last_ms;
 //size of chunks (should be >= 2 * horizon - see world_generation.js)
 let chunk_size = 32;
 //perlin noise scale factor
-let hill_height = 24;
+let hill_height = 12;
 //world seed - should be overridden by server, but if have to go offline,
 //we will assign a random one now
 let seed = parseInt(Math.random() * 10);
