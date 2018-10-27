@@ -79,8 +79,10 @@
   </div>
   <input type='text' id='name_inpt' placeholder='display name'></input>
   <div id='control_div'>
-    <input id='torch' type='checkbox' onchange='torch=this.checked'></input>
-    <label for='torch'>torch mode</label>
+    <input id='a' type='checkbox' onchange='torch=this.checked'></input>
+    <label for='a'>torch</label><br>
+    <input id='b' type='checkbox' onchange='third_person=this.checked'></input>
+    <label for='b'>3rd person</label>
     <div id='chat_div'>
       <div id='log'></div>
       <input type='text' id='cmd_inpt' placeholder='chat or `help` for cmds'></input>

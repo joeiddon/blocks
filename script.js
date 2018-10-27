@@ -13,7 +13,9 @@
  - add more blocks (bottom bar and random trees?)
  - experiment with the floor blocks - not just grass ((vx + vy) % 2 == 0) ?
  - minimap of the heights of the blocks
- - speed up `mc` listener
+ - make the trees determinstically-randomly shaped
+ - add a checkbox for a popup controls printout - allowing the addition
+   of more controls like to change distance in third person and proper fov support
 */
 
 
@@ -67,8 +69,13 @@ let pos_last_ms = -Infinity;
 //player_height defined in objects.js
 //name (used for websockets)
 let name;
-//position of camera
+//position of camera, note that the actual 3d rendering viewpoint
+//passed to zengine.render is transformed by the get_viewpoint() function before
 let cam = {x: 0, y: 0, z: 1+player_height, yaw: 0, pitch: 0, roll: 0, fov: 90};
+//should the viewpoint be behing the cam?
+let third_person = false;
+//distance of viewpoint behind cam
+let shoulder_distance = 2;
 //how far can we see?
 let horizon = 16;
 //speed, units per second
@@ -125,7 +132,7 @@ function update(time_now_ms){
     handle_keys();
     handle_jump();
     update_sun();
-    zengine.render(gen_world(), cam, cnvs, wireframe, false, torch ? 0 : light);
+    zengine.render(gen_world(), get_viewpoint(), cnvs, wireframe, false, torch ? 0 : light);
     render_names();
     render_hud();
 
@@ -360,7 +367,6 @@ function mc(e){
                 }
             }
             if (!inside) continue;
-            console.log('done');
             if (e.button == 2) {  //right click (remove)
                 if (blocks[i].obj != 'grass')
                     user_blocks = user_blocks.filter(b=>!(b.x == blocks[i].x &&
@@ -451,7 +457,7 @@ function handle_jump(){
 
 function gen_world(){
     //returns 3d world faces from blocks array and positions object
-    let world = [];
+    let world = third_person ? objects.person(cam) : [];
     for (let i = 0; i < blocks.length; i++){
         if (zengine.distance(blocks[i], cam) > horizon) continue;
         world.push(...objects[blocks[i].obj]().map(
@@ -464,14 +470,7 @@ function gen_world(){
     }
     for (let player in positions){
         if (player == name) continue;
-        world.push(...objects.person().map(
-            f => ({verts: f.verts.map(zengine.z_axis_rotate(zengine.to_rad(-positions[player].yaw)))
-                                 .map(zengine.translate(positions[player].x,
-                                                        positions[player].y,
-                                                        positions[player].z-player_height)),
-                   vect: zengine.z_axis_rotate(zengine.to_rad(-positions[player].yaw))(f.vect),
-                   col:  f.col})
-        ));
+        world.push(...objects.person(positions[player]));
     }
     return world;
 }
@@ -518,18 +517,21 @@ function store_name(){
 }
 
 function render_names(){
+    //consider passing the viewpoint in as a param to save calculating
+    //it twice :/
+    let viewpoint = get_viewpoint();
     for (let player_name in positions){
         if (player_name == name) continue;
-        let aligned = zengine.translate(cam.x, cam.y, cam.z)(
-                      zengine.x_axis_rotate(zengine.to_rad(cam.pitch))(
-                      zengine.y_axis_rotate(zengine.to_rad(cam.roll))(
-                      zengine.z_axis_rotate(zengine.to_rad(cam.yaw))(
-                      zengine.translate(-cam.x, -cam.y, -cam.z)(positions[player_name])))));
-        let centre_angles = {y: zengine.to_deg(Math.atan2(aligned.x - cam.x, aligned.y - cam.y)),
-                             p: zengine.to_deg(Math.atan2(aligned.z - cam.z, aligned.y - cam.y))};
+        let aligned = zengine.translate(viewpoint.x, viewpoint.y, viewpoint.z)(
+                      zengine.x_axis_rotate(zengine.to_rad(viewpoint.pitch))(
+                      zengine.y_axis_rotate(zengine.to_rad(viewpoint.roll))(
+                      zengine.z_axis_rotate(zengine.to_rad(viewpoint.yaw))(
+                      zengine.translate(-viewpoint.x, -viewpoint.y, -viewpoint.z)(positions[player_name])))));
+        let centre_angles = {y: zengine.to_deg(Math.atan2(aligned.x - viewpoint.x, aligned.y - viewpoint.y)),
+                             p: zengine.to_deg(Math.atan2(aligned.z - viewpoint.z, aligned.y - viewpoint.y))};
 
-        let coord = {x: cnvs.width/2 + (centre_angles.y * (cnvs.width/cam.fov)),
-                     y: cnvs.height/2 - (centre_angles.p * (cnvs.width/cam.fov))};
+        let coord = {x: cnvs.width/2 + (centre_angles.y * (cnvs.width/viewpoint.fov)),
+                     y: cnvs.height/2 - (centre_angles.p * (cnvs.width/viewpoint.fov))};
 
         ctx.font = '10px monospace';
         ctx.fillStyle = '#fff';
@@ -562,4 +564,13 @@ function update_sun(){
     //it is 180 here as day and night are 180 degrees each
     light.pitch += 180 * time_diff_s / (light.pitch > 180 ? sun_times_s.day : sun_times_s.night);
     light.pitch %= 360;
+}
+
+function get_viewpoint(){
+    if (!third_person) return cam;
+    let displacement = zengine.polar_to_cart(zengine.to_rad(cam.yaw), zengine.to_rad(cam.pitch));
+    return {x: cam.x - shoulder_distance * displacement.x,
+            y: cam.y - shoulder_distance * displacement.y,
+            z: cam.z - shoulder_distance * displacement.z,
+            yaw: cam.yaw, pitch: cam.pitch, roll: cam.roll, fov: cam.fov};
 }

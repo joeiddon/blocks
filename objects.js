@@ -22,7 +22,7 @@ let objects = {
     leaves: function(){
         return get_cuboid(0, 0, 0, 1, 1, 1, {h: 104, s: 77, l: 36});
     },
-    person: function(){
+    human: function(){
         //stands on z-axis, looking down y-axis
         let col = {h: 182, s: 86, l: 64};
         let fc =  {h: 299, s: 66, l: 68};
@@ -47,6 +47,17 @@ let objects = {
                 {x: x,   y: y+1, z: z+2, obj: 'leaves'},
                 {x: x,   y: y-1, z: z+2, obj: 'leaves'}];
     },
+    person: function(their_cam){
+        //no pre-processing required, just pass their cam straight in
+        return objects.human().map(
+            f => ({verts: f.verts.map(zengine.z_axis_rotate(zengine.to_rad(-their_cam.yaw)))
+                                 .map(zengine.translate(their_cam.x,
+                                                        their_cam.y,
+                                                        their_cam.z-player_height)),
+                   vect: zengine.z_axis_rotate(zengine.to_rad(-their_cam.yaw))(f.vect),
+                   col:  f.col})
+        );
+    }
 }
 
 function get_cuboid(x, y, z, lx, ly, lz, color){
