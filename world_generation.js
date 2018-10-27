@@ -27,7 +27,7 @@ TODO:
 function random(x, y){
     //times seed by x and y multiplied by two primes and then normalise
     //with the size of the seed
-    return seed * 17 * (x * 19 + y * 27) % 97 / 97;
+    return seed * 193 * (x * 197 + y * 199) % 97 / 97;
 }
 
 function dot_prod_grid(x, y, vx, vy){
@@ -71,6 +71,9 @@ function get_chunk(vx, vy){ //parse in here the row of z heights of the column o
             let y = vy * chunk_size + j;
             let z = parseInt(v*hill_height);
             blocks.push({x: x, y: y, z: z, obj: 'grass'});
+            if (random(i, j) > 0.98)
+            blocks.push(...objects.tree(x, y, z+1));
+
             /*
             //need to place more blocks above or below this height,
             //in case we are describing a "cliff" or similar

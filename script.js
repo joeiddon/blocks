@@ -50,10 +50,10 @@ let hud_radius = 4;
 let wireframe = false;
 //set of currently pressed keys
 let pressed_keys = new Set();
-//light
-let light = {yaw: 30, pitch: -60, min_saturation: 0.3, min_lightness: 0.3};
+//sun - updated to change during the day, see sun_times_s below
+let light = {yaw: 30, pitch: 0, min_saturation: 0.3, min_lightness: 0.3};
 //day and night lengths (sun revolution speed) in seconds
-let sun_times_s = {day: 40, night: 30};
+let sun_times_s = {day: 10, night: 1};
 
 /******websocket*********/
 //server address
@@ -559,6 +559,7 @@ function pause(){
 }
 
 function update_sun(){
-    light.pitch += 360 * time_diff_s / (light.pitch < 0 ? sun_times_s.day : sun_times_s.night);
+    //it is 180 here as day and night are 180 degrees each
+    light.pitch += 180 * time_diff_s / (light.pitch > 180 ? sun_times_s.day : sun_times_s.night);
     light.pitch %= 360;
 }
