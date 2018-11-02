@@ -8,7 +8,8 @@ USER_BLOCKS = set() #stores the user placed blocks (orange cubes & eventually mo
 SEED = random.randint(0, 50) #seeds perlin noise func on client side to generate all grass terrain
 
 #TODO:
-# (js side) block calling urself the same as someone else
+# only ping block deltas rather than the whole lot
+# when initially joining, must send the whole lot
 
 def users_str():
     return 'online: ['+','.join(user.name for user in USERS)+']'
@@ -56,7 +57,7 @@ async def handle_ws(websocket, path):
             elif message['type'] == 'update_position':
                 POSITIONS[websocket.name] = message['data']
             elif message['type'] == 'block_place':
-                #stored as tuples as set
+                #stored as tuples in set
                 USER_BLOCKS.add(tuple(message['data'][k] for k in ['x','y','z','obj']))
             elif message['type'] == 'block_remove':
                 t = tuple(message['data'][k] for k in ['x','y','z','obj'])
@@ -80,7 +81,7 @@ async def pinger():
     while True:
         await broadcast({'type':'positions', 'data': POSITIONS})
         await broadcast({'type':'user_blocks', 'data': [dict(zip(['x','y','z','obj'],t)) for t in USER_BLOCKS]})
-        await asyncio.sleep(0.02)
+        await asyncio.sleep(0.2)
 
 
 ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
