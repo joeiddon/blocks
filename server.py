@@ -81,7 +81,7 @@ async def pinger():
     while True:
         await broadcast({'type':'positions', 'data': POSITIONS})
         await broadcast({'type':'user_blocks', 'data': [dict(zip(['x','y','z','obj'],t)) for t in USER_BLOCKS]})
-        await asyncio.sleep(0.2)
+        await asyncio.sleep(0.05)
 
 
 ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
