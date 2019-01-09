@@ -1,11 +1,18 @@
 #! /usr/bin/python3.6
-import asyncio,websockets,json,random,ssl
+
+import asyncio, websockets, json, random, ssl, os.path
 
 PORT = 443
+BACKUP_LOCATION = '/home/joe/blocks/world_backup'
 USERS = set()       #set of WebSocketServerProtocol instances
 POSITIONS = {}      #will store the positions in the format {user_name: {x: ,y: ,z: ,yaw: }, ...}
 USER_BLOCKS = set() #stores the user placed blocks (orange cubes & eventually more) in format (x, y, z, obj)
 SEED = random.randint(0, 50) #seeds perlin noise func on client side to generate all grass terrain
+
+if os.path.exists(BACKUP_LOCATION):
+    with open(BACKUP_LOCATION) as f:
+        SEED = f.readline()[:-1]
+
 
 #TODO:
 # only ping block deltas rather than the whole lot
@@ -75,13 +82,20 @@ async def handle_ws(websocket, path):
             else:
                 print('message type', message['type'], 'not recognised')
     except:
-        handle_leave(websocket);
+        await handle_leave(websocket);
 
 async def pinger():
     while True:
         await broadcast({'type':'positions', 'data': POSITIONS})
         await broadcast({'type':'user_blocks', 'data': [dict(zip(['x','y','z','obj'],t)) for t in USER_BLOCKS]})
         await asyncio.sleep(0.05)
+
+async def backup():
+    while True:
+        with open(BACKUP_LOCATION, 'w') as f:
+            f.write(str(SEED))
+            f.write(json.dumps(USER_BLOCKS))
+        await asyncio.sleep(10)
 
 
 ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
@@ -90,6 +104,5 @@ ssl_context.load_cert_chain(certfile='/etc/letsencrypt/live/joe.iddon.com/fullch
 loop = asyncio.get_event_loop()
 task = loop.create_task(pinger())
 loop.run_until_complete(websockets.serve(handle_ws,port=PORT,ssl=ssl_context))
-#loop.run_until_complete(websockets.serve(handle_ws,port=PORT))
 loop.run_until_complete(task)
 loop.run_forever()
