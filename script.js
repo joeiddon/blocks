@@ -59,7 +59,7 @@ let sun_times_s = {day: 10, night: 1};
 
 /******websocket*********/
 //server address
-let ws_server_ip = 'wss://joe.iddon.com:443/';
+let ws_server_ip = 'wss://joe.iddon.com:8765/'; //443
 //position update interval
 let pos_int_ms = 100;
 //last position update
