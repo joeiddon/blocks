@@ -2,17 +2,17 @@
 
 import asyncio, websockets, json, random, ssl, os.path
 
-PORT = 443
-BACKUP_LOCATION = '/home/joe/blocks/world_backup'
+PORT = 8765
+BACKUP_LOCATION = '/home/joe/blocks/world.backup'
 USERS = set()       #set of WebSocketServerProtocol instances
 POSITIONS = {}      #will store the positions in the format {user_name: {x: ,y: ,z: ,yaw: }, ...}
 USER_BLOCKS = set() #stores the user placed blocks (orange cubes & eventually more) in format (x, y, z, obj)
 SEED = random.randint(0, 50) #seeds perlin noise func on client side to generate all grass terrain
 
 if os.path.exists(BACKUP_LOCATION):
-    with open(BACKUP_LOCATION) as f:
-        SEED = f.readline()[:-1]
-
+    a,b = open(BACKUP_LOCATION).read().split('\n')
+    SEED = int(a)
+    USER_BLOCKS = set(tuple(l) for l in json.loads(b))
 
 #TODO:
 # only ping block deltas rather than the whole lot
@@ -93,8 +93,8 @@ async def pinger():
 async def backup():
     while True:
         with open(BACKUP_LOCATION, 'w') as f:
-            f.write(str(SEED))
-            f.write(json.dumps(USER_BLOCKS))
+            f.write(str(SEED)+'\n')
+            f.write(json.dumps(list(USER_BLOCKS)))
         await asyncio.sleep(10)
 
 
@@ -102,7 +102,9 @@ ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
 ssl_context.load_cert_chain(certfile='/etc/letsencrypt/live/joe.iddon.com/fullchain.pem',
                             keyfile ='/etc/letsencrypt/live/joe.iddon.com/privkey.pem')
 loop = asyncio.get_event_loop()
-task = loop.create_task(pinger())
+ping_task = loop.create_task(pinger())
+backup_task = loop.create_task(backup())
 loop.run_until_complete(websockets.serve(handle_ws,port=PORT,ssl=ssl_context))
-loop.run_until_complete(task)
+loop.run_until_complete(ping_task)
+loop.run_until_complete(backup_task)
 loop.run_forever()
