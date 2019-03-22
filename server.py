@@ -2,7 +2,7 @@
 
 import asyncio, websockets, json, random, ssl, os.path
 
-PORT = 8765
+PORT = 443 #8765
 BACKUP_LOCATION = '/home/joe/blocks/world.backup'
 USERS = set()       #set of WebSocketServerProtocol instances
 POSITIONS = {}      #will store the positions in the format {user_name: {x: ,y: ,z: ,yaw: }, ...}

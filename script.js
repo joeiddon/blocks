@@ -59,7 +59,8 @@ let sun_times_s = {day: 10, night: 1};
 
 /******websocket*********/
 //server address
-let ws_server_ip = 'wss://joe.iddon.com:8765/'; //443
+let ws_server_url = 'wss://joe.iddon.com:8765/';
+let alt_ws_server_url = 'wss://joe.iddon.com:443/';
 //position update interval
 let pos_int_ms = 100;
 //last position update
@@ -115,7 +116,8 @@ fts();
 //display startup message
 startup_screen();
 //init. websocket connection
-let websocket = new WebSocket(ws_server_ip);
+let websocket;
+init_websocket_connection(ws_server_url); //if error, will try alt_ws_server_url
 //put stored name in the input textbox
 setup_name();
 
@@ -228,32 +230,42 @@ document.addEventListener('pointerlockchange', function(){
 
 /********** websocket **********/
 
-websocket.onerror = function(e){
-    enter_offline_mode('server is down');
-}
+function init_websocket_connection(ip){
+    console.log('trying to connect to', ip);
+    websocket = new WebSocket(ip);
 
-websocket.onclose = function(e){
-    enter_offline_mode('closed connection unexpectedly');
-}
+    websocket.onerror = websocket.onclose = function(e){
+        if (websocket.url == ws_server_url){
+            console.log('failed to connect to', ws_server_url);
+            init_websocket_connection(alt_ws_server_url);
+        } else if (websocket.url == alt_ws_server_url) {
+            enter_offline_mode('could not connect to websocket server');
+        }
+    }
 
-websocket.onmessage = function(e){
-    let message = JSON.parse(e.data);
-    switch (message['type']){
-        case 'positions':
-            positions = message['data'];
-            break;
-        case 'seed':
-            seed = parseInt(message['data']);
-            break;
-        case 'user_blocks':
-            user_blocks = message['data'];
-            break;
-        case 'log':
-            log.innerText += message['data'] + '\n';
-            log.scrollTop = log.scrollHeight;
-            break;
-        default:
-            console.log('unknown message type');
+    //websocket.onerror = function(e){
+    //    enter_offline_mode('websocket server encountered an error');
+    //}
+
+    websocket.onmessage = function(e){
+        let message = JSON.parse(e.data);
+        switch (message['type']){
+            case 'positions':
+                positions = message['data'];
+                break;
+            case 'seed':
+                seed = parseInt(message['data']);
+                break;
+            case 'user_blocks':
+                user_blocks = message['data'];
+                break;
+            case 'log':
+                log.innerText += message['data'] + '\n';
+                log.scrollTop = log.scrollHeight;
+                break;
+            default:
+                console.log('unknown message type');
+        }
     }
 }
 
