@@ -16,6 +16,7 @@
  - make the trees determinstically-randomly shaped
  - add a checkbox for a popup controls printout - allowing the addition
    of more controls like to change distance in third person and proper fov support
+ - make the position pinging be done from a separate setInterval loop
 */
 
 
@@ -26,6 +27,7 @@ let control_div = document.getElementById('control_div');
 let chat_div    = document.getElementById('chat_div');
 let log         = document.getElementById('log');
 let cmd_inpt    = document.getElementById('cmd_inpt');
+let stats_div   = document.getElementById('stats_div');
 
 let ctx = cnvs.getContext('2d');
 
@@ -77,7 +79,7 @@ let cam = {x: 0, y: 0, z: 1+player_height, yaw: 0, pitch: 0, roll: 0, fov: 90};
 let third_person = false;
 //distance of viewpoint behind cam
 let shoulder_distance = 2;
-//how far can we see?
+//how far can we see? - constantly updated in `handle_fps` to reach fps_target
 let horizon = 16;
 //speed, units per second
 let speeds = {normal: 5, sprint: 15};
@@ -97,6 +99,9 @@ let update_id;
 //timing globals (prefix indicates unit - seconds or milliseconds)
 let time_diff_s;
 let time_last_ms;
+let fps_samples = 10;
+let fps_avg = 0;
+let fps_target = 20;
 
 /********world*************/
 //size of chunks (should be >= 2 * horizon - see world_generation.js)
@@ -129,6 +134,8 @@ function update(time_now_ms){
     time_diff_s  = time_last_ms ? (time_now_ms - time_last_ms) / 1000 : 0;
     time_last_ms = time_now_ms;
 
+    handle_fps();
+
     gen_chunk_blocks();
     blocks = chunk_blocks.concat(user_blocks);
     handle_keys();
@@ -150,7 +157,7 @@ function update(time_now_ms){
 function enter_the_blocks(){
     name_inpt.style.display = 'none';
     control_div.style.display = 'block';
-    cnvs.style.backgroundColor = '#eea';
+    //cnvs.style.backgroundColor = '#eea';
     document.removeEventListener('click', initial_click);
     cnvs.requestPointerLock();
 }
@@ -324,8 +331,8 @@ function handle_keys(){
 
 //all mouse events are controlled by the pointerlockchange event handler
 
-//experimental
-document.addEventListener('mousewheel',e=>(cam.fov+=e.deltaY<0?-10:10));
+//experimental feature: scrolling to change shoulder_distance or fov depending on whether in third person mode
+document.addEventListener('mousewheel',e=>{if(third_person){shoulder_distance+=e.deltaY<0?-10:10}else{cam.fov+=e.deltaY<0?-10:10}});
 
 function mc(e){
     // 0 --> left ; 2 --> right
@@ -585,4 +592,22 @@ function get_viewpoint(){
             y: cam.y - shoulder_distance * displacement.y,
             z: cam.z - shoulder_distance * displacement.z,
             yaw: cam.yaw, pitch: cam.pitch, roll: cam.roll, fov: cam.fov};
+}
+
+function handle_fps(){
+    //updates the avg_fps via a moving average:
+    //https://stackoverflow.com/questions/10990618/calculate-rolling-moving-average-in-c/10990656#10990656
+    //also we increment/decrement the `horizon` variable to try and get the fps_average to equal fps_target
+    if (time_diff_s == 0) return;
+    let this_fps = 1/time_diff_s;
+    fps_avg -= fps_avg/fps_samples;
+    fps_avg += this_fps/fps_samples;
+   //if we are at least two frames per second off our target, we step the horizon in the appropriate direciton
+   //wihtout this dead zone region, we get big oscillations
+    if (Math.abs(fps_target - fps_avg) > 2)
+    horizon += fps_avg > fps_target ? 1 : -1;
+    //update on-screen stats
+    let fps_two_dp = parseInt(fps_avg * 100) / 100;
+    stats_div.innerText = `fps:     ${fps_two_dp} / ${fps_target}
+                           horizon: ${horizon}`
 }

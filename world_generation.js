@@ -44,8 +44,10 @@ function dot_prod_grid(x, y, vx, vy){
 }
 
 //adapted perlin.js code to allow seed for chunk generator
-//returns chunk at coordinate (vx,vy) WITH BLOCKS TRANSLATED TO CHUNK POINT
+//returns chunk at coordinate (vx,vy) in chunk coordinate system
+//BLOCKS RETURNED ARE TRANSLATED TO CHUNK POINT IN ZENGINE 3D COORDINATES
 function get_chunk(vx, vy){ //parse in here the row of z heights of the column of blocks one unit in the negative x direction
+    //memoization
     if (chunks.hasOwnProperty([vx, vy])){
         return chunks[[vx, vy]];
     }
@@ -98,15 +100,17 @@ function get_chunk(vx, vy){ //parse in here the row of z heights of the column o
 
 function gen_chunk_blocks(){
     //populates global chunk_blocks array with blocks from the current chunk and
-    //then the closest 3 chunks around
+    //and also with the 8 chunks around the chunk we are standing on (making 9 in total)
     chunk_blocks = [];
     let cx = Math.floor(cam.x / chunk_size);
     let cy = Math.floor(cam.y / chunk_size);
-    //what to add to x and y for the other 3 chunks
-    let ax = (cam.x % chunk_size) > ((cam.x >= 0 ? 1 : -1) * chunk_size / 2) ? 1 : -1;
-    let ay = (cam.y % chunk_size) > ((cam.y >= 0 ? 1 : -1) * chunk_size / 2) ? 1 : -1;
     chunk_blocks = [].concat(get_chunk(cx, cy),
-                             get_chunk(cx + ax, cy),
-                             get_chunk(cx, cy + ay),
-                             get_chunk(cx + ax, cy + ay));
+                             get_chunk(cx+1, cy),
+                             get_chunk(cx+1, cy+1),
+                             get_chunk(cx+1, cy-1),
+                             get_chunk(cx-1, cy),
+                             get_chunk(cx-1, cy+1),
+                             get_chunk(cx-1, cy-1),
+                             get_chunk(cx, cy+1),
+                             get_chunk(cx, cy-1));
 }
