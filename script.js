@@ -57,7 +57,7 @@ let pressed_keys = new Set();
 //sun - updated to change during the day, see sun_times_s below
 let light = {yaw: 30, pitch: 0, min_saturation: 0.3, min_lightness: 0.3};
 //day and night lengths (sun revolution speed) in seconds
-let sun_times_s = {day: 10, night: 1};
+let sun_times_s = {day: 20, night: 10};
 
 /******websocket*********/
 //server address
@@ -80,7 +80,7 @@ let third_person = false;
 //distance of viewpoint behind cam
 let shoulder_distance = 2;
 //how far can we see? - constantly updated in `handle_fps` to reach fps_target
-let horizon = 16;
+let horizon = 22;
 //speed, units per second
 let speeds = {normal: 5, sprint: 15};
 //are we sprinting?
@@ -99,7 +99,7 @@ let update_id;
 //timing globals (prefix indicates unit - seconds or milliseconds)
 let time_diff_s;
 let time_last_ms;
-let fps_samples = 10;
+let fps_samples = 5;
 let fps_avg = 0;
 let fps_target = 20;
 
