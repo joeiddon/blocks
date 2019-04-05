@@ -22,13 +22,13 @@ let objects = {
     leaves: function(){
         return get_cuboid(0, 0, 0, 1, 1, 1, {h: 104, s: 77, l: 36});
     },
-    human: function(){
-        //stands on z-axis, looking down y-axis
+    human: function(head_pitch){
+        //stands on z-axis, looking down y-axis, head tilted by head_pitch, in degrees
         let col = {h: 182, s: 86, l: 64};
         let fc =  {h: 299, s: 66, l: 68};
         let sz = 1; //width of body; proportions based of this
         let h  = player_height;
-        let head =      get_cuboid(    -sz/4, -sz/6, h * 4/5, sz/2, sz/3, h * 1/5, [col,fc,col,col,col,col]);
+        let head =      get_cuboid(    -sz/4, -sz/6, h * 4/5, sz/2, sz/3, h * 1/5, [col,fc,col,col,col,col], zengine.to_rad(-head_pitch));
         let body =      get_cuboid(    -sz/2, -sz/4, h * 2/5,   sz, sz/2, h * 2/5, col);
         let left_leg =  get_cuboid(sz/2-sz/4, -sz/6,       0, sz/4, sz/3, h * 2/5, col);
         let right_leg = get_cuboid(    -sz/2, -sz/6,       0, sz/4, sz/3, h * 2/5, col);
@@ -49,7 +49,7 @@ let objects = {
     },
     person: function(their_cam){
         //no pre-processing required, just pass their cam straight in
-        return objects.human().map(
+        return objects.human(their_cam.pitch).map(
             f => ({verts: f.verts.map(zengine.z_axis_rotate(zengine.to_rad(-their_cam.yaw)))
                                  .map(zengine.translate(their_cam.x,
                                                         their_cam.y,
@@ -60,12 +60,14 @@ let objects = {
     }
 }
 
-function get_cuboid(x, y, z, lx, ly, lz, color){
+function get_cuboid(x, y, z, lx, ly, lz, color, tilt){
     //gives cuboid: at position (x,y,z),
     //              with dimensions (lx,ly,lz),
     //              coloured by the col: either a single colour, or
     //                                   an array of face colors (right,forward,up,left,back,down)
+    //              also (optionally) tilted by angle tilt, in radians
     //the position is from the bottom corner, with the cuboid extending into the positive octant
+    if (tilt == undefined) tilt = 0;
     let cols = color.length ? color : [color,color,color,color,color,color];
     let cuboid = [{verts: [{x: 0, y: 0, z: 0}, {x: 0, y:ly, z: 0}, {x: 0, y:ly, z:lz}, {x: 0, y: 0, z:lz}], col: cols[3], vect: {x:-1, y: 0, z: 0}},
                   {verts: [{x: 0, y: 0, z: 0}, {x:lx, y: 0, z: 0}, {x:lx, y: 0, z:lz}, {x: 0, y: 0, z:lz}], col: cols[4], vect: {x: 0, y:-1, z: 0}},
@@ -73,6 +75,7 @@ function get_cuboid(x, y, z, lx, ly, lz, color){
                   {verts: [{x:lx, y: 0, z: 0}, {x:lx, y:ly, z: 0}, {x:lx, y:ly, z:lz}, {x:lx, y: 0, z:lz}], col: cols[0], vect: {x: 1, y: 0, z: 0}},
                   {verts: [{x: 0, y:ly, z: 0}, {x:lx, y:ly, z: 0}, {x:lx, y:ly, z:lz}, {x: 0, y:ly, z:lz}], col: cols[1], vect: {x: 0, y: 1, z: 0}},
                   {verts: [{x: 0, y: 0, z:lz}, {x:lx, y: 0, z:lz}, {x:lx, y:ly, z:lz}, {x: 0, y:ly, z:lz}], col: cols[2], vect: {x: 0, y: 0, z: 1}}];
-    cuboid.forEach(c => c.verts = c.verts.map(zengine.translate(x,y,z)));
+    cuboid.forEach(c => {c.verts = c.verts.map(zengine.x_axis_rotate(tilt)).map(zengine.translate(x,y,z));
+                         c.vect = zengine.x_axis_rotate(tilt)(c.vect)});
     return cuboid;
 }

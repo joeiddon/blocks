@@ -2,20 +2,26 @@
 
 import asyncio, websockets, json, random, ssl, os.path
 
-PORT = 443 #8765
+PORT = 443
+ALT_PORT = 8765
 BACKUP_LOCATION = '/home/joe/blocks/world.backup'
 USERS = set()       #set of WebSocketServerProtocol instances
-POSITIONS = {}      #will store the positions in the format {user_name: {x: ,y: ,z: ,yaw: }, ...}
+POSITIONS = {}      #will store the positions in the format {user_name: {x: ,y: ,z: ,yaw: , ...}, ...}
 USER_BLOCKS = set() #stores the user placed blocks (orange cubes & eventually more) in format (x, y, z, obj)
 SEED = random.randint(0, 50) #seeds perlin noise func on client side to generate all grass terrain
 
+print('Checking for world backup ...')
 if os.path.exists(BACKUP_LOCATION):
     a,b = open(BACKUP_LOCATION).read().split('\n')
     SEED = int(a)
     USER_BLOCKS = set(tuple(l) for l in json.loads(b))
+    #log our remembered seed and the first part of the blocks array
+    print(f'Backup found! Using seed: [{SEED}], and blocks array: {str([list(t) for t in USER_BLOCKS][:3])[:-1]}  ...] .')
+else:
+    print(f'No backup found, using random seed: [{SEED}] and starting a fresh blocks array.')
 
 #TODO:
-# only ping block deltas rather than the whole lot
+# only ping block deltas rather than the whole lot for faster network transfer
 # when initially joining, must send the whole lot
 
 def users_str():
@@ -104,7 +110,25 @@ ssl_context.load_cert_chain(certfile='/etc/letsencrypt/live/joe.iddon.com/fullch
 loop = asyncio.get_event_loop()
 ping_task = loop.create_task(pinger())
 backup_task = loop.create_task(backup())
-loop.run_until_complete(websockets.serve(handle_ws,port=PORT,ssl=ssl_context))
+
+try:
+    print(f'Trying to connect to [{PORT}] ...')
+    loop.run_until_complete(websockets.serve(handle_ws,port=PORT,ssl=ssl_context))
+    print('OK')
+except OSError:
+    print('connection failed.')
+    try:
+        print(f'Trying to connect to [{ALT_PORT}] ...')
+        loop.run_until_complete(websockets.serve(handle_ws,port=ALT_PORT,ssl=ssl_context))
+        print('OK')
+    except OSError:
+        print('connection failed.')
+        raise Exception('No free port!')
+
+print('Starting data broadcast task.')
 loop.run_until_complete(ping_task)
+print(f'Running backup task to location: [{BACKUP_LOCATION}].')
 loop.run_until_complete(backup_task)
+
+print('Entering endless loop!')
 loop.run_forever()

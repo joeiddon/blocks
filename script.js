@@ -523,7 +523,7 @@ function startup_screen(){
 }
 
 function send_position(){
-    websocket.send(JSON.stringify({type: 'update_position', data: {x: cam.x, y: cam.y, z: cam.z, yaw: cam.yaw}}));
+    websocket.send(JSON.stringify({type: 'update_position', data: cam}));
 }
 
 function setup_name(){
