@@ -55,7 +55,7 @@ let wireframe = false;
 //set of currently pressed keys
 let pressed_keys = new Set();
 //sun - updated to change during the day, see sun_times_s below
-let light = {yaw: 30, pitch: 0, min_saturation: 0.3, min_lightness: 0.3};
+let light = {yaw: 30, pitch: 0, min_saturation: 0.7, min_lightness: 0.5};
 //day and night lengths (sun revolution speed) in seconds
 let sun_times_s = {day: 20, night: 10};
 
