@@ -82,7 +82,7 @@ let shoulder_distance = 2;
 //how far can we see? - constantly updated in `handle_fps` to reach fps_target
 let horizon = 22;
 //speed, units per second
-let speeds = {normal: 5, sprint: 15};
+let speeds = {normal: 3, sprint: 7};
 //are we sprinting?
 let sprinting = false;
 //do we use the light, or let zengine default (kinda like a torch)
